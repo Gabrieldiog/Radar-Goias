@@ -1,0 +1,65 @@
+# --- Pesquisa interna (não publicar) ---
+PESQUISA_FONTES.md
+/pesquisa/
+*.notas.md
+
+# --- Dados coletados ---
+/data/
+/dados/
+*.csv
+*.xlsx
+*.xls
+*.zip
+*.rar
+*.parquet
+*.geojson
+*.db
+*.sqlite
+*.sqlite3
+!docs/exemplos/*.csv
+
+# --- Segredos ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.*
+credenciais.*
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- Node / frontend ---
+node_modules/
+dist/
+build/
+.next/
+.vite/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-error.log*
+
+# --- Sistema operacional / editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*~
+
+# --- Docker / infra local ---
+docker-compose.override.yml
+/pgdata/

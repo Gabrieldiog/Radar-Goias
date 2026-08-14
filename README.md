@@ -30,7 +30,7 @@ O Radar Goiás existe para fazer esse trabalho chato uma vez, direito, e deixar 
 
 **Atendimento ao cidadão.** O estado responde a ouvidoria no prazo? Quais órgãos travam?
 
-O eixo de segurança é o mais frágil dos cinco e não adianta fingir o contrário. O motivo está em limitações conhecidas, mais abaixo.
+O eixo de segurança é o mais delicado dos cinco. A fonte estadual não serve e quem salva o eixo é uma fonte federal, que cobre homicídio mas não cobre crime patrimonial por município. Está explicado em limitações conhecidas, mais abaixo, porque é o tipo de detalhe que muda a leitura do número.
 
 ## O que já foi verificado
 
@@ -72,7 +72,17 @@ O Portal da Transparência federal funciona pelo download em lote, sem precisar 
 
 O FNDE funciona por uma consulta HTTP legada, mas exige uma requisição por município, o que encarece a coleta.
 
-Três fontes ficaram pelo caminho. A SSP-GO não serve, porque publica apenas PDFs de uma página com números estaduais. O dados.gov.br não serve, porque exige token e mesmo assim só devolve metadado. E o PNCP está fora do ar, com erro 504 em todas as tentativas.
+O SINESP, do Ministério da Justiça, resolve o eixo de segurança. São planilhas anuais de 2015 a 2026, atualizadas mensalmente, e onze dos trinta e um tipos de ocorrência vêm por município. Em Goiás no ano de 2025 a grade está completa: 246 municípios vezes 12 meses, sem um buraco sequer.
+
+O INEP cobre o eixo de educação inteiro, com o Censo Escolar e o IDEB por município, ambos identificando o município por código IBGE de 7 dígitos.
+
+O DATASUS resolve o problema do CNES. Um arquivo de 700 KB por competência traz o cadastro de estabelecimentos de Goiás, e os 246 municípios batem exatamente com a lista do IBGE.
+
+O IPEADATA entrega taxa de homicídio por município já calculada, de 1980 a 2022, com código IBGE de 7 dígitos. Serve de série histórica longa e de conferência independente contra o SINESP.
+
+Quatro fontes ficaram pelo caminho. A SSP-GO não serve, porque publica apenas PDFs de uma página com números estaduais. O dados.gov.br não serve, porque exige token e mesmo assim só devolve metadado. O PNCP está fora do ar, com erro 504 em todas as tentativas. E o FTP citado pelo Portal da Transparência de Goiás existe, mas recusa acesso anônimo e exige credencial nominal, o que não adianta: os dados de lá são do Executivo estadual e não têm coluna de município.
+
+Um aviso para quem for repetir esta pesquisa. O endereço `dados.mj.gov.br`, que muita documentação ainda cita como portal do SINESP, **não existe mais**. O domínio não resolve em nenhum servidor de nomes. Os arquivos migraram para o site do Ministério da Justiça, e o próprio ministério mantém links quebrados apontando para o portal morto.
 
 Cada achado passou por uma segunda checagem adversarial, feita de propósito para tentar derrubar a conclusão da primeira. Foi útil: pegou um erro de código de município que teria entrado silenciosamente no banco, e um valor de repasse federal que estava 19% inflado porque incluía linhas sem município.
 
@@ -88,6 +98,10 @@ A graça não está em republicar dado. Está em calcular coisa que não existe 
 - Tempo médio de atendimento de manifestações e de pedidos de acesso à informação
 - Percentual da receita aplicado em educação e saúde, por município, na série de 2011 a 2024
 - Transferências diretas do FNDE por aluno matriculado, por município
+- Taxa de homicídio, feminicídio e suicídio por 100 mil habitantes, por município e por mês
+- IDEB do município cruzado com a despesa em educação por aluno, para ver se dinheiro vira aprendizagem
+- Homicídios cruzados com a despesa em segurança pública por habitante
+- Incidência de dengue cruzada com cobertura de atenção primária e com volume de reclamações de saúde na ouvidoria
 
 Esse último nome é feio de propósito. O impulso era chamar de gasto em educação por aluno, que é bem mais bonito. Só que o FUNDEB, que é a maior fonte de financiamento da educação básica, não está disponível naquele sistema. Chamar de gasto por aluno o que na verdade são apenas as transferências diretas seria uma promessa que o dado não sustenta. Fica o nome feio e honesto.
 
@@ -195,9 +209,15 @@ RNF16. Em domínio cujo robots.txt desaconselhe coleta automatizada, o acesso fi
 
 Prefiro deixar isso registrado no README do que descobrir na apresentação.
 
-Segurança pública não tem dado municipal. A SSP-GO publica nove PDFs de uma página cada, todos com números agregados do estado inteiro, zero de 246 municípios. Os subdomínios de estatística respondem, mas o conteúdo é uma página de site em manutenção, e o host antigo está com certificado vencido desde abril. O dado municipal existe internamente, tanto que os próprios comunicados da secretaria citam quantos municípios ficaram sem homicídio no ano, mas ele não vira arquivo público.
+Segurança pública não tem dado municipal vindo do estado. A SSP-GO publica nove PDFs de uma página cada, todos com números agregados do estado inteiro, zero de 246 municípios. Os subdomínios de estatística respondem, mas o conteúdo é uma página de site em manutenção, e o host antigo está com certificado vencido desde abril.
 
-As saídas possíveis são três: tratar o eixo como estadual e dizer isso claramente, buscar fonte federal com recorte municipal, ou abrir pedido via Lei de Acesso à Informação. A terceira é assíncrona e não serve para alimentar um sistema automatizado, então no máximo entra como complemento.
+Quem salva o eixo é o SINESP, do governo federal, mas com um limite que precisa estar escrito no painel: só onze dos trinta e um tipos de ocorrência vêm por município. Homicídio doloso, feminicídio, latrocínio, suicídio, tentativa de homicídio e mortes no trânsito, sim. Roubo, furto, roubo de veículo, estupro e tráfico de drogas, não, porque só existem no nível do estado. Ou seja, o crime patrimonial fica de fora do mapa. Se o painel não avisar, o usuário vai achar que o Radar esqueceu.
+
+Duas armadilhas do SINESP que já custaram tempo na pesquisa. A chave de município é o nome em caixa alta com acento, não o código IBGE, então o cruzamento depende de normalizar texto e de filtrar o estado antes. E os campos de sexo da vítima são texto, não número, então somá-los sem converter concatena string em vez de somar.
+
+Existe uma segunda fonte de homicídio, o IPEADATA, com série que vai de 1980 a 2022. Ela é útil como história longa e como conferência independente, mas conta coisa diferente: o número do IPEA vem de declaração de óbito, o do SINESP vem de registro policial. Não batem entre si, e colocar as duas no mesmo gráfico seria erro grosseiro.
+
+Sobre o mínimo constitucional em educação e saúde, aquele percentual que a lei obriga o município a aplicar: ele não sai da API do Tesouro, porque os anexos que trazem esse cálculo não existem por lá. O que se calcula pela função orçamentária não é a mesma conta e não pode receber esse nome. O caminho certo é o Tribunal de Contas dos Municípios, que publica o índice já pronto.
 
 O portal do estado tem um firewall de aplicação que bloqueia consulta SQL sem limite de linhas. Descobri tomando um erro 403 com página de bloqueio da Subsecretaria de Tecnologia da Informação, código de bloqueio e tudo. Não houve bloqueio de IP, e a mesma consulta com limite explícito passa normalmente. Fica valendo como regra do projeto: toda consulta leva limite.
 
@@ -207,9 +227,17 @@ Há também tabela vazia se passando por tabela boa. Alguns recursos aparecem co
 
 ## Dados pessoais
 
-Os dados de ouvidoria e de acesso à informação são os mais sensíveis do projeto. Verifiquei coluna por coluna: as bases de manifestações e de pedidos de LAI trazem data de abertura, data de finalização, órgão, tipo, município e situação, mas não trazem nome, CPF nem o texto escrito pelo cidadão.
+Comecei achando que a ouvidoria seria o ponto sensível do projeto. Verifiquei coluna por coluna e ela passou: as bases de manifestações e de pedidos de acesso à informação trazem data de abertura, data de finalização, órgão, tipo, município e situação, mas não trazem nome, CPF nem o texto escrito pelo cidadão. O campo mais longo tem 105 caracteres e é nome de setor.
 
-Mesmo assim, a regra do projeto é trabalhar só com agregados. Nada que permita identificar uma manifestação individual entra na API.
+O risco estava em outro lugar, e é sério. Três achados que mudaram regra de projeto.
+
+O cadastro de estabelecimentos do DATASUS traz CPF de pessoa física. Um em cada quatro registros é consultório de profissional autônomo, e naquele caso o campo que parece CNPJ é o CPF da pessoa, com dígito verificador válido. Mais de cem registros trazem também agência e conta bancária. A regra virou obrigatória: ao ler o arquivo, essas colunas são descartadas na entrada, antes de qualquer coisa tocar o banco.
+
+A API do Ministério da Saúde expõe, sem token nenhum, uma listagem nominal de médicos com nome civil, registro profissional e raça declarada. Raça é dado sensível pela LGPD, associado a pessoa identificada. Esse endpoint não entra no projeto em hipótese alguma.
+
+A folha de pagamento do estado traz nome do servidor, cargo, lotação, data de admissão e remuneração, por pessoa e por mês. Ser público por transparência não autoriza republicar. E como não tem coluna de município, nem serve ao projeto.
+
+Duas regras gerais que saíram disso. Agregar por município não basta sozinho, porque em município pequeno a própria contagem reidentifica: mais da metade dos municípios com consultório autônomo tem dois ou menos. Então vale supressão de contagens abaixo de cinco. E nenhuma linha de microdado individual é exposta pela API, em nenhuma circunstância.
 
 ## Etiqueta com os servidores
 
@@ -231,11 +259,29 @@ O robots.txt do Tribunal de Contas dos Municípios desaconselha coleta automatiz
 
 A ordem de ataque começa pelo portal de Goiás com o IBGE junto, porque é onde a razão entre esforço e resultado é melhor: SQL aberto, dado atualizado diariamente e chave de município limpa. Com essas duas fontes já saem indicadores de saúde e de ouvidoria de verdade.
 
-Se o tempo apertar, o primeiro a cair é o eixo de segurança, pelo motivo que já expliquei, e o mapa vira uma tabela.
+Se o tempo apertar, o mapa vira uma tabela, a série do Tesouro encolhe para os três exercícios mais recentes e o eixo de segurança fica só com homicídio e feminicídio, que são baratos de calcular.
 
-## Stack pretendida
+Duas coisas que a pesquisa mostrou não valerem o esforço e que já ficam cortadas de antemão. A sinopse estatística do INEP, que parecia ser a alternativa leve aos microdados, é na verdade 72 vezes maior que a fatia de Goiás dos próprios microdados. E o arquivo de pedidos de acesso à informação do portal estadual é duplicata exata de um recorte do arquivo de manifestações, com os mesmos identificadores linha a linha, então ingerir os dois contaria tudo em dobro.
 
-Ainda em aberto, mas a inclinação é Python para coleta e cálculo, PostgreSQL para armazenar, e uma API leve em cima. O painel provavelmente entra depois, quando houver indicador suficiente para valer a pena.
+## Stack
+
+**Backend em Python 3.12 com FastAPI.** FastAPI porque ele gera a documentação OpenAPI sozinho, o que já entrega um dos requisitos sem trabalho extra, e porque a coleta depende de bibliotecas que só existem maduras em Python. Duas em particular: a que descomprime o formato proprietário do cadastro de estabelecimentos do DATASUS, e a que lê planilha em modo de fluxo, necessária porque o arquivo do SINESP tem planilha interna de até 410 MB e estoura a memória se lido de uma vez.
+
+**PostgreSQL no Supabase.** A escolha do Supabase é por causa do prazo: o plano gratuito é permanente, enquanto banco gratuito que expira em 90 dias venceria no meio de um projeto de três meses.
+
+**httpx** para as requisições, com controle de ritmo de uma por segundo por domínio.
+
+**pytest** para os testes, que ficam na pasta `testes` na raiz do repositório.
+
+**Front em React**, separado, entrando depois que a API estiver de pé.
+
+**Deploy** com a API num servidor e o front na Netlify. O front conversa com a API por proxy no servidor, e não direto do navegador, o que elimina a necessidade de CORS entre as duas metades e mantém a URL da API fora do alcance do cliente.
+
+### Rodando os testes
+
+Crie o ambiente virtual com `python3 -m venv .venv`, instale as dependências de desenvolvimento com `.venv/bin/python -m pip install -e ".[dev]"` e rode `.venv/bin/python -m pytest`.
+
+Os testes não tocam a rede. Os 246 municípios ficam versionados em `radar/dados/municipios_go.json`, gerado a partir da API de localidades do IBGE, porque essa lista praticamente não muda e deixar a suíte dependendo de servidor de governo tornaria o resultado imprevisível.
 
 ## Fontes
 

@@ -273,15 +273,29 @@ Duas coisas que a pesquisa mostrou não valerem o esforço e que já ficam corta
 
 **pytest** para os testes, que ficam na pasta `testes` na raiz do repositório.
 
-**Front em React**, separado, entrando depois que a API estiver de pé.
+**Front em React com JavaScript**, separado, entrando depois que a API estiver de pé.
 
-**Deploy** com a API num servidor e o front na Netlify. O front conversa com a API por proxy no servidor, e não direto do navegador, o que elimina a necessidade de CORS entre as duas metades e mantém a URL da API fora do alcance do cliente.
+**Docker** para subir o banco local. Ele não tem relação com a hospedagem do front: serve para desenvolver e para qualquer pessoa conseguir rodar o projeto sem instalar Postgres na mão.
 
-### Rodando os testes
+**Deploy** em três pedaços independentes. O front React vai para a Vercel. A API vai para um host que roda container, porque FastAPI com conexão persistente de banco não combina com função serverless, que morre entre requisições e abre conexão nova toda vez. O banco fica no Supabase. O front conversa com a API por proxy no servidor, e não direto do navegador, o que elimina a necessidade de CORS entre as duas metades.
 
-Crie o ambiente virtual com `python3 -m venv .venv`, instale as dependências de desenvolvimento com `.venv/bin/python -m pip install -e ".[dev]"` e rode `.venv/bin/python -m pytest`.
+## Como rodar
 
-Os testes não tocam a rede. Os 246 municípios ficam versionados em `radar/dados/municipios_go.json`, gerado a partir da API de localidades do IBGE, porque essa lista praticamente não muda e deixar a suíte dependendo de servidor de governo tornaria o resultado imprevisível.
+Suba o banco com `docker compose up -d`. O esquema é aplicado sozinho na primeira subida, então não há passo de migração manual.
+
+A porta é a 5433, escolhida para não brigar com uma instalação de Postgres que já exista na 5432. Se a 5433 também estiver ocupada na sua máquina, suba com outra, por exemplo `RADAR_PORTA=5434 docker compose up -d`, e aponte a aplicação para ela com `RADAR_BANCO_URL`.
+
+Crie o ambiente virtual com `python3 -m venv .venv` e instale com `.venv/bin/python -m pip install -e ".[dev]"`.
+
+Rode os testes com `.venv/bin/python -m pytest`.
+
+Para apontar para outro banco, por exemplo o do Supabase, basta definir a variável de ambiente `RADAR_BANCO_URL`. É a única diferença entre rodar local e rodar publicado.
+
+### Sobre os testes
+
+Os testes de lógica não tocam a rede. Os 246 municípios ficam versionados em `radar/dados/municipios_go.json`, gerado a partir da API de localidades do IBGE, e a resposta de população usada nos testes está gravada em `testes/fixtures`. Isso é proposital: suíte que depende de servidor de governo falha por motivo errado e ensina a ignorar teste vermelho.
+
+Os testes que precisam de banco são pulados automaticamente se não houver banco no ar, então a suíte roda em qualquer máquina, com ou sem Docker.
 
 ## Fontes
 

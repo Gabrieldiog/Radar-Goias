@@ -4,7 +4,6 @@ create table if not exists municipio (
     nome_normalizado text not null unique
 );
 
-
 create table if not exists coleta (
     id           bigserial primary key,
     fonte        text        not null,
@@ -18,7 +17,6 @@ create table if not exists populacao (
     codigo_ibge text    not null references municipio,
     ano         integer not null,
     habitantes  integer not null check (habitantes > 0),
-   
     base        text    not null check (base in ('estimativa', 'censo')),
     coleta_id   bigint  references coleta,
     primary key (codigo_ibge, ano, base)

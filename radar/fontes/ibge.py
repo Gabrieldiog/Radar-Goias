@@ -5,6 +5,10 @@ from typing import NamedTuple
 from radar.municipios import para_codigo7
 
 ESPERADO = 246
+URL = (
+    "https://servicodados.ibge.gov.br/api/v3/agregados/6579"
+    "/periodos/-1/variaveis/9324?localidades=N6[N3[52]]"
+)
 
 
 class RespostaVazia(Exception): ...
@@ -28,3 +32,8 @@ def le_populacao(payload, base: str = "estimativa") -> list[Populacao]:
     if len(linhas) != ESPERADO:
         raise RespostaVazia(f"esperado {ESPERADO} municípios de Goiás, veio {len(linhas)}")
     return linhas
+
+
+def busca_populacao(cliente):
+    resposta = cliente.json(URL)
+    return le_populacao(resposta.payload), resposta

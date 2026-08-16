@@ -8,3 +8,11 @@ foi construído a espinha dorsal do projeto: o módulo que resolve município. C
 ## Dia 2, 15 de agosto de 2026
 
 O projeto ganhou banco. Criamos o esquema com três tabelas, município, população e coleta, essa última guardando de qual requisição cada dado veio, que é o que sustenta a promessa de procedência. O Docker sobe o Postgres já com o esquema aplicado, sem passo manual. Os 246 municípios foram carregados de verdade, e a leitura da população do IBGE recusa a resposta se não vierem exatamente 246, porque resposta incompleta de servidor de governo é comum e passa despercebida, duas armadilhas viraram teste: o IBGE devolve o nome do município sufixado com a UF, então a chave tem que ser o código, e recarregar a população atualiza em vez de duplicar.
+
+## Dia 3, 15 de agosto de 2026
+
+Agora existe um comando só. Rodar `python -m radar` cria as tabelas se faltarem, carrega os 246 municípios, busca a população no IBGE e grava tudo, registrando de qual requisição cada número veio. Apagamos o banco inteiro e reconstruímos com esse comando para confirmar que funciona do zero.
+
+Foi a primeira vez que o projeto tocou a rede, então veio junto o controle de ritmo: no máximo uma requisição por segundo por domínio, com User-Agent que diz quem somos e como nos achar. O limite é por domínio e não global, senão consultar duas fontes diferentes ficaria duas vezes mais lento sem necessidade.
+
+Rodar duas vezes não duplica dado, e fonte que responde incompleta não grava nada pela metade. Quatro mutações para provar que os testes seguram isso.

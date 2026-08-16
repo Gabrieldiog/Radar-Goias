@@ -40,11 +40,21 @@ def carrega_municipios(conn) -> int:
     return len(linhas)
 
 
-def grava_populacao(conn, linhas) -> int:
-    linhas = list(linhas)
+def grava_coleta(conn, fonte, url, status, tamanho) -> int:
+    return conn.execute(
+        "insert into coleta (fonte, url, status_http, bytes) values (%s, %s, %s, %s)"
+        " returning id",
+        (fonte, url, status, tamanho),
+    ).fetchone()[0]
+
+
+def grava_populacao(conn, linhas, coleta_id=None) -> int:
+    linhas = [(*l, coleta_id) for l in linhas]
     conn.cursor().executemany(
-        "insert into populacao (codigo_ibge, ano, habitantes, base) values (%s, %s, %s, %s) "
-        "on conflict (codigo_ibge, ano, base) do update set habitantes = excluded.habitantes",
+        "insert into populacao (codigo_ibge, ano, habitantes, base, coleta_id)"
+        " values (%s, %s, %s, %s, %s)"
+        " on conflict (codigo_ibge, ano, base) do update set"
+        " habitantes = excluded.habitantes, coleta_id = excluded.coleta_id",
         linhas,
     )
     return len(linhas)

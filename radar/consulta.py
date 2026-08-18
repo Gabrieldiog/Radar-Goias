@@ -2,7 +2,7 @@
 
 import re
 
-LIMITE = re.compile(r"\blimit\s+\d+\s*;?\s*$", re.IGNORECASE)
+LIMITE = re.compile(r"\blimit\s+(\d+)\s*;?\s*$", re.IGNORECASE)
 
 
 class SqlSemLimite(Exception):
@@ -14,6 +14,7 @@ class SqlSemLimite(Exception):
 
 
 def exige_limite(sql: str) -> str:
-    if not LIMITE.search(sql or ""):
+    achado = LIMITE.search(sql or "")
+    if not achado or int(achado.group(1)) < 1:
         raise SqlSemLimite(sql)
     return sql

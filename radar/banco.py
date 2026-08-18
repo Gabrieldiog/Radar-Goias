@@ -58,3 +58,15 @@ def grava_populacao(conn, linhas, coleta_id=None) -> int:
         linhas,
     )
     return len(linhas)
+
+
+def grava_casos_dengue(conn, casos, coleta_id=None) -> int:
+    linhas = [(*c, coleta_id) for c in casos]
+    conn.cursor().executemany(
+        "insert into caso_dengue (codigo_ibge, ano, casos, coleta_id)"
+        " values (%s, %s, %s, %s)"
+        " on conflict (codigo_ibge, ano) do update set"
+        " casos = excluded.casos, coleta_id = excluded.coleta_id",
+        linhas,
+    )
+    return len(linhas)

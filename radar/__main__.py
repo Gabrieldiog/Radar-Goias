@@ -6,8 +6,10 @@ from radar.http import Cliente
 
 def main() -> int:
     with banco.conecta() as conn:
-        resumo = carga.executa(conn, Cliente())
-    print(f"municipios: {resumo['municipios']}  populacao: {resumo['populacao']}")
+        cliente = Cliente()
+        resumo = carga.executa(conn, cliente) | carga.executa_dengue(conn, cliente)
+    for chave, valor in resumo.items():
+        print(f"{chave}: {valor}")
     return 0
 
 

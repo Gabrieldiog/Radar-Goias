@@ -21,3 +21,11 @@ create table if not exists populacao (
     coleta_id   bigint  references coleta,
     primary key (codigo_ibge, ano, base)
 );
+
+create table if not exists caso_dengue (
+    codigo_ibge text    not null references municipio,
+    ano         integer not null,
+    casos       integer not null check (casos >= 0),
+    coleta_id   bigint  references coleta,
+    primary key (codigo_ibge, ano)
+);

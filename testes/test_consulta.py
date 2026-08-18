@@ -30,3 +30,8 @@ def test_palavra_limit_dentro_de_texto_nao_conta_como_limite():
 def test_limite_precisa_de_numero():
     with pytest.raises(SqlSemLimite):
         exige_limite('SELECT 1 FROM "abc" LIMIT')
+
+
+def test_limite_zero_e_barrado_porque_volta_vazio_em_silencio():
+    with pytest.raises(SqlSemLimite):
+        exige_limite('SELECT 1 FROM "abc" LIMIT 0')

@@ -23,9 +23,9 @@ class Cliente:
         self._dorme = dorme
         self._ultimo: dict[str, float] = {}
 
-    def json(self, url: str) -> Resposta:
+    def json(self, url: str, timeout: float | None = None) -> Resposta:
         self._aguarda(httpx.URL(url).host)
-        r = self._http.get(url)
+        r = self._http.get(url, timeout=timeout or self._http.timeout)
         r.raise_for_status()
         return Resposta(r.json(), r.status_code, len(r.content), str(r.url))
 

@@ -76,3 +76,14 @@ def test_erro_da_fonte_nao_passa_como_dado(relogio):
 
     with pytest.raises(httpx.HTTPStatusError):
         cliente(relogio, falha).json("https://exemplo.gov.br/a")
+
+
+def test_timeout_pode_ser_esticado_por_fonte_lenta(relogio):
+    vistos = []
+
+    def espia(req):
+        vistos.append(req.extensions.get("timeout", {}).get("read"))
+        return httpx.Response(200, json=[])
+
+    cliente(relogio, espia).json("https://exemplo.gov.br/a", timeout=120.0)
+    assert vistos == [120.0]

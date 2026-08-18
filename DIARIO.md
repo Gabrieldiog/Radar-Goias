@@ -16,3 +16,13 @@ Agora existe um comando só. Rodar `python -m radar` cria as tabelas se faltarem
 Foi a primeira vez que o projeto tocou a rede, então veio junto o controle de ritmo: no máximo uma requisição por segundo por domínio, com User-Agent que diz quem somos e como nos achar. O limite é por domínio e não global, senão consultar duas fontes diferentes ficaria duas vezes mais lento sem necessidade.
 
 Rodar duas vezes não duplica dado, e fonte que responde incompleta não grava nada pela metade. Quatro mutações para provar que os testes seguram isso.
+
+## Dia 4, 17 de agosto de 2026
+
+O Radar calculou seu primeiro indicador: incidência de dengue por 100 mil habitantes, nos 246 municípios. A consulta é agregada no servidor do portal, então trazemos 200 KB em vez de baixar um arquivo de 193 MB.
+
+A guarda de LIMIT do dia 1 finalmente foi usada de verdade, e ganhou uma regra nova: LIMIT zero também é barrado, porque devolve vazio em silêncio e parece ausência de dado em vez de erro.
+
+O portal se mostrou lento e irregular, de 2 segundos a mais de 30 na mesma consulta, então cada fonte agora pode esticar seu próprio tempo de espera.
+
+O resultado declara qual população foi usada como denominador, e isso quase passou batido: a mutação que trocava a população mais recente pela mais antiga não quebrou teste nenhum, porque o teste só tinha um ano cadastrado. Corrigimos o teste, que agora pega.

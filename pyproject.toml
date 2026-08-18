@@ -3,7 +3,13 @@ name = "radar-goias"
 version = "0.1.0"
 description = "Indicadores públicos de Goiás cruzando fontes que não conversam entre si"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "fastapi>=0.115",
+    "httpx>=0.28",
+    "psycopg[binary]>=3.2",
+    "slowapi>=0.1.9",
+    "uvicorn[standard]>=0.34",
+]
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]

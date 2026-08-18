@@ -289,6 +289,8 @@ Crie o ambiente virtual com `python3 -m venv .venv` e instale com `.venv/bin/pyt
 
 Carregue os dados com `.venv/bin/python -m radar`. Esse comando cria as tabelas se faltarem, carrega os 246 municípios, busca a população no IBGE e grava, registrando de qual requisição o dado veio. Pode rodar quantas vezes quiser, porque ele atualiza em vez de duplicar.
 
+Suba a API com `RADAR_CHAVES=sua-chave .venv/bin/uvicorn --factory radar.api:cria_app`. A documentação interativa fica em `/docs` e a rota `/saude` responde sem chave, para monitoramento.
+
 Rode os testes com `.venv/bin/python -m pytest`.
 
 Para apontar para outro banco, por exemplo o do Supabase, basta definir a variável de ambiente `RADAR_BANCO_URL`. É a única diferença entre rodar local e rodar publicado.

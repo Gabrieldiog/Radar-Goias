@@ -26,3 +26,13 @@ A guarda de LIMIT do dia 1 finalmente foi usada de verdade, e ganhou uma regra n
 O portal se mostrou lento e irregular, de 2 segundos a mais de 30 na mesma consulta, então cada fonte agora pode esticar seu próprio tempo de espera.
 
 O resultado declara qual população foi usada como denominador, e isso quase passou batido: a mutação que trocava a população mais recente pela mais antiga não quebrou teste nenhum, porque o teste só tinha um ano cadastrado. Corrigimos o teste, que agora pega.
+
+## Dia 5, 18 de agosto de 2026
+
+A API REST subiu. Ela serve o catálogo de indicadores, a lista dos 246 municípios, a ficha de um município e o valor do indicador filtrado por município e ano. Toda resposta de indicador carrega as fontes que a produziram, porque número sem procedência não vale nada. A rota de saúde responde sem chave, para o monitoramento poder bater nela.
+
+Chave de API no cabeçalho ou na query, e o limite de requisições conta por chave, não por IP. Isso importa: numa faculdade, todo mundo sai pelo mesmo IP, e um balde compartilhado faria um usuário derrubar os colegas.
+
+Foi justamente aí que a mutação pegou a gente. Trocar o balde por chave por um balde por IP não quebrou teste nenhum, porque nenhum teste usava duas chaves diferentes. Escrevemos o teste que faltava e agora ele pega.
+
+Também vimos o portal mudar o dado embaixo da gente: Goiânia tinha 38.232 casos ontem e 38.231 hoje. É a fonte se corrigindo, e é o motivo de guardarmos data e URL de cada coleta.

@@ -18,7 +18,18 @@ CATALOGO = {
         "unidade": "casos por 100 mil habitantes",
         "formula": "casos notificados no ano / habitantes * 100000",
         "fontes": ["dadosabertos.go.gov.br", "servicodados.ibge.gov.br"],
-    }
+    },
+    "leitos-rede-estadual": {
+        "id": "leitos-rede-estadual",
+        "nome": "Leitos da rede estadual por 100 mil habitantes",
+        "unidade": "leitos por 100 mil habitantes",
+        "formula": "leitos implantados na rede estadual / habitantes * 100000",
+        "fontes": [
+            "dadosabertos.go.gov.br",
+            "apidadosabertos.saude.gov.br",
+            "servicodados.ibge.gov.br",
+        ],
+    },
 }
 
 
@@ -85,7 +96,10 @@ def cria_app(limite: str = "60/minute") -> FastAPI:
         if indicador_id not in CATALOGO:
             raise HTTPException(404, f"indicador desconhecido: {indicador_id}")
         with banco.conecta() as conn:
-            linhas = indicadores.incidencia_dengue(conn, ano)
+            if indicador_id == "leitos-rede-estadual":
+                linhas = indicadores.leitos_por_100mil(conn)
+            else:
+                linhas = indicadores.incidencia_dengue(conn, ano)
         if municipio:
             linhas = [l for l in linhas if l["codigo_ibge"] == municipio]
         return {

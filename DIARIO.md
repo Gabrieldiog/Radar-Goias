@@ -36,3 +36,13 @@ Chave de API no cabeçalho ou na query, e o limite de requisições conta por ch
 Foi justamente aí que a mutação pegou a gente. Trocar o balde por chave por um balde por IP não quebrou teste nenhum, porque nenhum teste usava duas chaves diferentes. Escrevemos o teste que faltava e agora ele pega.
 
 Também vimos o portal mudar o dado embaixo da gente: Goiânia tinha 38.232 casos ontem e 38.231 hoje. É a fonte se corrigindo, e é o motivo de guardarmos data e URL de cada coleta.
+
+## Dia 6, 20 de agosto de 2026
+
+Resolvemos o problema que abre a apresentação: o arquivo de leitos do estado não diz em qual município fica cada hospital, só traz um código de cadastro colado no nome da unidade. Agora o sistema separa esse código, pergunta ao cadastro nacional de saúde a qual município ele pertence e fecha o cruzamento. Das 46 unidades, nenhuma ficou sem município.
+
+O resultado mostra uma concentração forte: só 23 dos 246 municípios têm leito da rede estadual. Aparecida de Goiânia, com 556 mil habitantes, tem 34 leitos por 100 mil, quatro vezes menos que Goiânia, que fica do lado.
+
+O firewall do portal nos bloqueou de novo, agora por causa de uma função de conversão de data. Aprendemos que ele barra mais coisa do que imaginávamos, e passamos a fazer a lógica de data do nosso lado.
+
+Um teste meu falhou porque chutei o dígito verificador de Uruaçu. O código acertou, porque busca na tabela em vez de calcular. Era exatamente para isso que a busca existia.

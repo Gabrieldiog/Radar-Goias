@@ -58,7 +58,8 @@ def test_municipio_inexistente_da_404(cliente):
 
 def test_catalogo_lista_o_indicador(cliente):
     r = cliente.get(f"/v1/indicadores?chave={CHAVE}")
-    assert [i["id"] for i in r.json()["dados"]] == ["incidencia-dengue"]
+    ids = {i["id"] for i in r.json()["dados"]}
+    assert ids == {"incidencia-dengue", "leitos-rede-estadual"}
 
 
 def test_indicador_devolve_valor_e_procedencia(cliente):

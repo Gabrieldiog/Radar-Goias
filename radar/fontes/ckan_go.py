@@ -1,5 +1,6 @@
 """Portal de dados abertos de Goiás: SQL de leitura direto no DataStore."""
 
+import re
 from typing import NamedTuple
 from urllib.parse import quote
 
@@ -10,6 +11,7 @@ from radar.municipios import Sentinela, para_codigo7
 
 BASE = "https://dadosabertos.go.gov.br/api/3/action/datastore_search_sql"
 DENGUE = "0c7c9ff8-cdb2-4cee-892d-c9ef28c0ba9f"
+LEITOS = "17b6c28d-02b4-4696-a843-3759c50de0a3"
 # a agregação no portal já levou de 2 s a mais de 30 s
 ESPERA_MAXIMA = 120.0
 
@@ -56,3 +58,58 @@ def busca_casos(cliente, recurso: str = DENGUE):
             ) from erro
         raise
     return le_casos(resposta.payload), resposta
+
+
+class Leito(NamedTuple):
+    cnes: str
+    tipo: str
+    implantados: int
+    ocupados: int
+
+
+def sql_datas_leitos(ano: int, limite: int = 500) -> str:
+    return exige_limite(
+        f'SELECT DISTINCT "Data" AS data FROM "{LEITOS}"'
+        f' WHERE "Data" LIKE \'%/{ano}\' LIMIT {limite}'
+    )
+
+
+def sql_leitos(data: str, recurso: str = LEITOS, limite: int = 2000) -> str:
+    return exige_limite(
+        'SELECT "Unidade de saude" AS unidade, "Tipo de acomodacao" AS tipo,'
+        ' "Leitos/Implantados" AS implantados, "Leitos/Ocupados" AS ocupados'
+        f' FROM "{recurso}" WHERE "Data" = \'{data}\' LIMIT {limite}'
+    )
+
+
+def le_leitos(payload) -> list[Leito]:
+    if not payload.get("success"):
+        raise ConsultaRecusada(f"o portal recusou a consulta: {payload.get('error')}")
+    leitos = []
+    for reg in payload["result"]["records"]:
+        # a unidade traz o CNES colado no nome e com os zeros da esquerda comidos
+        achado = re.match(r"\s*(\d+)", reg["unidade"] or "")
+        if not achado:
+            continue
+        leitos.append(
+            Leito(
+                achado.group(1).zfill(7),
+                reg["tipo"],
+                int(float(reg["implantados"] or 0)),
+                int(float(reg["ocupados"] or 0)),
+            )
+        )
+    return leitos
+
+
+def busca_leitos(cliente, ano: int):
+    """Descobre a data mais recente e traz o retrato dela."""
+    datas = cliente.json(f"{BASE}?sql={quote(sql_datas_leitos(ano))}", ESPERA_MAXIMA)
+    if not datas.payload.get("success"):
+        raise ConsultaRecusada(f"o portal recusou a consulta: {datas.payload.get('error')}")
+    achadas = [r["data"] for r in datas.payload["result"]["records"]]
+    if not achadas:
+        raise ConsultaRecusada(f"nenhuma data de leitos em {ano}")
+    data = max(achadas, key=lambda s: (s[6:], s[3:5], s[:2]))
+    resposta = cliente.json(f"{BASE}?sql={quote(sql_leitos(data))}", ESPERA_MAXIMA)
+    return le_leitos(resposta.payload), data, resposta

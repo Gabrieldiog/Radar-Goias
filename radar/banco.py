@@ -70,3 +70,16 @@ def grava_casos_dengue(conn, casos, coleta_id=None) -> int:
         linhas,
     )
     return len(linhas)
+
+
+def grava_leitos(conn, linhas, coleta_id=None) -> int:
+    linhas = [(*l, coleta_id) for l in linhas]
+    conn.cursor().executemany(
+        "insert into leito (codigo_ibge, cnes, tipo, data, implantados, ocupados, coleta_id)"
+        " values (%s, %s, %s, %s, %s, %s, %s)"
+        " on conflict (cnes, tipo, data) do update set"
+        " implantados = excluded.implantados, ocupados = excluded.ocupados,"
+        " codigo_ibge = excluded.codigo_ibge, coleta_id = excluded.coleta_id",
+        linhas,
+    )
+    return len(linhas)

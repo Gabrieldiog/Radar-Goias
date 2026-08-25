@@ -46,3 +46,13 @@ O resultado mostra uma concentração forte: só 23 dos 246 municípios têm lei
 O firewall do portal nos bloqueou de novo, agora por causa de uma função de conversão de data. Aprendemos que ele barra mais coisa do que imaginávamos, e passamos a fazer a lógica de data do nosso lado.
 
 Um teste meu falhou porque chutei o dígito verificador de Uruaçu. O código acertou, porque busca na tabela em vez de calcular. Era exatamente para isso que a busca existia.
+
+## Dia 7, 20 de agosto de 2026
+
+O backend passou a servir o mapa. A malha dos 246 municípios veio do IBGE e ficou versionada junto do código, porque contorno de município não muda e assim os testes não dependem de servidor de governo. O código de área de cada polígono bate exatamente com os nossos 246, então o painel vai conseguir pintar o mapa juntando pelo código, sem conversão nenhuma.
+
+A rota do mapa manda o navegador guardar o arquivo por um dia, já que a geometria é fixa e pesa 176 KB.
+
+A ficha do município também cresceu: agora ela devolve os indicadores daquele município junto com a população. Goiânia responde com 2.540 casos de dengue e 130,6 leitos por 100 mil habitantes numa requisição só, que é o que a tela de detalhe do painel vai precisar.
+
+Município sem leito cadastrado devolve o campo vazio em vez de sumir com ele, para o painel não ter que adivinhar se o dado não existe ou se a rota mudou.

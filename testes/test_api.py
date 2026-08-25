@@ -93,3 +93,26 @@ def test_cada_chave_tem_seu_proprio_balde(cliente):
         assert c.get(f"/v1/municipios?chave={CHAVE}").status_code == 200
     assert c.get(f"/v1/municipios?chave={CHAVE}").status_code == 429
     assert c.get(f"/v1/municipios?chave={OUTRA}").status_code == 200
+
+
+# Verifica que a API serve o mapa para o painel desenhar.
+def test_malha_tem_os_246_municipios(cliente):
+    r = cliente.get(f"/v1/malha?chave={CHAVE}")
+    assert r.status_code == 200
+    assert len(r.json()["features"]) == 246
+
+
+# Verifica que o mapa é servido com cache, porque a geometria não muda.
+def test_malha_pede_para_o_navegador_guardar(cliente):
+    r = cliente.get(f"/v1/malha?chave={CHAVE}")
+    assert "max-age" in r.headers.get("cache-control", "")
+
+
+# Verifica que a ficha do município traz os indicadores dele.
+def test_ficha_do_municipio_traz_os_indicadores(cliente):
+    r = cliente.get(f"/v1/municipios/5208707?chave={CHAVE}")
+    corpo = r.json()
+    assert corpo["nome"] == "Goiânia"
+    assert corpo["indicadores"]["incidencia-dengue"] == pytest.approx(2543.2, abs=1)
+    # sem leito cadastrado o campo existe, mas vem vazio em vez de sumir
+    assert corpo["indicadores"]["leitos-rede-estadual"] is None

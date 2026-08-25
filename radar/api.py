@@ -3,13 +3,14 @@
 import os
 
 from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from psycopg.rows import dict_row
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 
-from radar import banco, indicadores
+from radar import banco, indicadores, malha
 
 CATALOGO = {
     "incidencia-dengue": {
@@ -49,6 +50,13 @@ def balde(request: Request) -> str:
     return f"chave:{chave}" if chave in chaves() else f"ip:{get_remote_address(request)}"
 
 
+def _do_municipio(linhas, codigo_ibge, campo):
+    for l in linhas:
+        if l["codigo_ibge"] == codigo_ibge:
+            return l[campo]
+    return None
+
+
 def cria_app(limite: str = "60/minute") -> FastAPI:
     limiter = Limiter(key_func=balde, default_limits=[limite], headers_enabled=True)
     app = FastAPI(title="Radar Goiás", version="0.1.0")
@@ -79,7 +87,23 @@ def cria_app(limite: str = "60/minute") -> FastAPI:
             ).fetchone()
         if not linha:
             raise HTTPException(404, f"município desconhecido: {codigo_ibge}")
+        with banco.conecta() as conn:
+            linha["indicadores"] = {
+                "incidencia-dengue": _do_municipio(
+                    indicadores.incidencia_dengue(conn, 2025), codigo_ibge, "por_100k"
+                ),
+                "leitos-rede-estadual": _do_municipio(
+                    indicadores.leitos_por_100mil(conn), codigo_ibge, "por_100mil"
+                ),
+            }
         return linha
+
+    @app.get("/v1/malha")
+    def contorno(request: Request, chave: str = Depends(exige_chave)):
+        # a geometria é fixa: deixa o navegador guardar por um dia
+        return JSONResponse(
+            malha.geojson(), headers={"cache-control": "public, max-age=86400"}
+        )
 
     @app.get("/v1/indicadores")
     def catalogo(request: Request, chave: str = Depends(exige_chave)):

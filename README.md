@@ -293,6 +293,12 @@ Suba a API com `RADAR_CHAVES=sua-chave .venv/bin/uvicorn --factory radar.api:cri
 
 Rode os testes com `.venv/bin/python -m pytest`.
 
+### O painel
+
+O painel fica na pasta `web` e é um projeto Next.js separado. Entre nela, instale com `pnpm install` e rode com `pnpm dev`. Ele sobe em `http://localhost:3000`.
+
+O navegador nunca fala com a API direto: o painel chama uma rota do próprio Next, que repassa o pedido por trás. Por isso não existe CORS entre as duas metades, e a chave de acesso fica só no servidor, sem chegar ao navegador. As duas variáveis que configuram isso estão em `web/.env.example`.
+
 Para apontar para outro banco, por exemplo o do Supabase, basta definir a variável de ambiente `RADAR_BANCO_URL`. É a única diferença entre rodar local e rodar publicado.
 
 ### Sobre os testes

@@ -56,3 +56,13 @@ A rota do mapa manda o navegador guardar o arquivo por um dia, já que a geometr
 A ficha do município também cresceu: agora ela devolve os indicadores daquele município junto com a população. Goiânia responde com 2.540 casos de dengue e 130,6 leitos por 100 mil habitantes numa requisição só, que é o que a tela de detalhe do painel vai precisar.
 
 Município sem leito cadastrado devolve o campo vazio em vez de sumir com ele, para o painel não ter que adivinhar se o dado não existe ou se a rota mudou.
+
+## Dia 8, 20 de agosto de 2026
+
+O painel nasceu. É um projeto Next.js separado, na pasta web, que mostra os 246 municípios num mapa colorido conforme o indicador escolhido, e um botão para trocar entre leitos e dengue. Clicar num município mostra o número dele.
+
+O mapa é desenhado em SVG direto do contorno do IBGE, sem biblioteca de mapa. Para um estado só, uma projeção linear simples já sai correta, e assim o projeto não ganha uma dependência pesada para desenhar polígono.
+
+O navegador nunca fala com a API direto. Ele chama uma rota do próprio Next, que repassa o pedido por trás com a chave. Conferimos no HTML entregue ao navegador: nem a chave nem o endereço interno da API aparecem lá. Isso também elimina o problema de CORS entre as duas metades.
+
+Municípios sem dado ficam em cinza em vez de sumir do mapa, e a legenda avisa isso, para ninguém achar que é falha de carregamento.

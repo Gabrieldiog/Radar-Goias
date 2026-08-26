@@ -4,7 +4,7 @@
 
 **O que é.** O Radar Goiás junta dados públicos do estado num lugar só e cruza fontes que não conversam entre si.
 
-**O que ele propõe.** Cada órgão publica do seu jeito, então ninguém consegue comparar nada. O estado publica todo dia quantos leitos de hospital estão ocupados, mas o arquivo não diz em qual município fica cada hospital: vem só um código de cadastro colado no nome da unidade. A gente separou esse código, perguntou ao cadastro nacional de saúde a qual cidade ele pertence, e cruzou com a população do IBGE. Aí apareceu que só 23 dos 246 municípios têm leito da rede estadual, e que Aparecida de Goiânia, com 556 mil habitantes, tem quatro vezes menos leitos por pessoa que Goiânia, que fica do lado, com 97% deles ocupados.
+**O que ele propõe.** Cada órgão publica do seu jeito, então ninguém consegue comparar nada. O estado publica quantos leitos de hospital estão ocupados, mas não diz em qual município fica cada hospital. A gente descobriu isso pelo cadastro nacional de saúde e cruzou com a população do IBGE. Aí apareceu que só 23 dos 246 municípios têm leito da rede estadual, e que Aparecida de Goiânia tem quatro vezes menos leitos por pessoa que Goiânia, que fica do lado.
 
 **O que fizemos.** Testamos 17 fontes públicas, uma por uma, e descartamos quatro que não serviam. Depois construímos o sistema todo, da coleta até a API, com 82 testes automáticos.
 

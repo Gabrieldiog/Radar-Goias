@@ -11,6 +11,8 @@ def main() -> int:
             carga.executa(conn, cliente)
             | carga.executa_dengue(conn, cliente)
             | carga.executa_leitos(conn, cliente)
+            | carga.executa_ubs(conn, cliente)
+            | carga.executa_ouvidoria(conn, cliente)
         )
     for chave, valor in resumo.items():
         print(f"{chave}: {valor}")

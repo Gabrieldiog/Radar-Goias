@@ -49,3 +49,54 @@ order by por_100mil desc
 def leitos_por_100mil(conn, base: str = "estimativa") -> list[dict]:
     with conn.cursor(row_factory=dict_row) as cur:
         return cur.execute(LEITOS_POR_100MIL, (base,)).fetchall()
+
+
+UBS_POR_10MIL = """
+with pop as (
+    select distinct on (codigo_ibge) codigo_ibge, ano, habitantes, base
+    from populacao where base = %s order by codigo_ibge, ano desc
+)
+select u.codigo_ibge, m.nome, u.unidades,
+       p.habitantes, p.ano as ano_populacao, p.base as base_populacional,
+       round(u.unidades * 10000.0 / p.habitantes, 2)::float8 as por_10mil
+from ubs u
+join municipio m using (codigo_ibge)
+join pop p using (codigo_ibge)
+order by por_10mil desc
+"""
+
+# o histograma guarda quantas manifestações levaram cada número de dias, então
+# a média sai ponderada pela quantidade, e não como média de médias
+OUVIDORIA_POR_ORGAO = """
+select orgao,
+       sum(total)::int as total,
+       coalesce(sum(total) filter (where status <> 'Aberta'), 0)::int as finalizadas,
+       coalesce(sum(total) filter (where status <> 'Aberta' and dias <= %s), 0)::int as no_prazo,
+       round(
+           100.0 * sum(total) filter (where status <> 'Aberta') / sum(total), 1
+       )::float8 as taxa_finalizacao,
+       round(
+           100.0 * sum(total) filter (where status <> 'Aberta' and dias <= %s)
+           / nullif(sum(total) filter (where status <> 'Aberta' and dias is not null), 0), 1
+       )::float8 as taxa_no_prazo,
+       round(
+           sum(dias * total) filter (where status <> 'Aberta' and dias is not null)::numeric
+           / nullif(sum(total) filter (where status <> 'Aberta' and dias is not null), 0), 1
+       )::float8 as tempo_medio
+from manifestacao
+where ano = %s
+group by orgao
+order by total desc
+"""
+
+
+def ubs_por_10mil(conn, base: str = "estimativa") -> list[dict]:
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(UBS_POR_10MIL, (base,)).fetchall()
+
+
+def ouvidoria_por_orgao(conn, ano: int | None = None, prazo: int = 30) -> list[dict]:
+    if ano is None:
+        ano = conn.execute("select max(ano) from manifestacao").fetchone()[0]
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(OUVIDORIA_POR_ORGAO, (prazo, prazo, ano)).fetchall()

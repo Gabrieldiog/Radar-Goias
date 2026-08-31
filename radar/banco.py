@@ -8,17 +8,23 @@ import psycopg
 from radar import municipios
 
 # 5433 porque a 5432 costuma já estar ocupada por outra instalação de Postgres
-URL = os.environ.get("RADAR_BANCO_URL", "postgresql://localhost:5433/radar_goias")
+PADRAO = "postgresql://localhost:5433/radar_goias"
+
+
+def url() -> str:
+    # lido a cada chamada, e não na importação, para os testes poderem apontar
+    # para outro banco sem apagar o de verdade
+    return os.environ.get("RADAR_BANCO_URL", PADRAO)
 ESQUEMA = Path(__file__).parent / "esquema.sql"
 
 
 def conecta():
-    return psycopg.connect(URL, autocommit=True)
+    return psycopg.connect(url(), autocommit=True)
 
 
 def disponivel() -> bool:
     try:
-        with psycopg.connect(URL, connect_timeout=2):
+        with psycopg.connect(url(), connect_timeout=2):
             return True
     except psycopg.Error:
         return False
@@ -80,6 +86,29 @@ def grava_leitos(conn, linhas, coleta_id=None) -> int:
         " on conflict (cnes, tipo, data) do update set"
         " implantados = excluded.implantados, ocupados = excluded.ocupados,"
         " codigo_ibge = excluded.codigo_ibge, coleta_id = excluded.coleta_id",
+        linhas,
+    )
+    return len(linhas)
+
+
+def grava_ubs(conn, linhas, coleta_id=None) -> int:
+    linhas = [(*l, coleta_id) for l in linhas]
+    conn.cursor().executemany(
+        "insert into ubs (codigo_ibge, unidades, coleta_id) values (%s, %s, %s)"
+        " on conflict (codigo_ibge) do update set"
+        " unidades = excluded.unidades, coleta_id = excluded.coleta_id",
+        linhas,
+    )
+    return len(linhas)
+
+
+def grava_manifestacoes(conn, linhas, coleta_id=None) -> int:
+    linhas = [(*l, coleta_id) for l in linhas]
+    conn.cursor().executemany(
+        "insert into manifestacao (ano, orgao, tipo, status, dias, total, coleta_id)"
+        " values (%s, %s, %s, %s, %s, %s, %s)"
+        " on conflict (ano, orgao, tipo, status, dias) do update set"
+        " total = excluded.total, coleta_id = excluded.coleta_id",
         linhas,
     )
     return len(linhas)

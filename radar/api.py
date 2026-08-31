@@ -18,6 +18,7 @@ CATALOGO = {
         "nome": "Incidência de dengue por 100 mil habitantes",
         "unidade": "casos por 100 mil habitantes",
         "formula": "casos notificados no ano / habitantes * 100000",
+        "dimensao": "municipio",
         "fontes": ["dadosabertos.go.gov.br", "servicodados.ibge.gov.br"],
     },
     "leitos-rede-estadual": {
@@ -25,11 +26,29 @@ CATALOGO = {
         "nome": "Leitos da rede estadual por 100 mil habitantes",
         "unidade": "leitos por 100 mil habitantes",
         "formula": "leitos implantados na rede estadual / habitantes * 100000",
+        "dimensao": "municipio",
         "fontes": [
             "dadosabertos.go.gov.br",
             "apidadosabertos.saude.gov.br",
             "servicodados.ibge.gov.br",
         ],
+    },
+    "ubs-por-habitante": {
+        "id": "ubs-por-habitante",
+        "nome": "Unidades básicas de saúde por 10 mil habitantes",
+        "unidade": "unidades por 10 mil habitantes",
+        "formula": "unidades básicas / habitantes * 10000",
+        "dimensao": "municipio",
+        "fontes": ["dadosabertos.go.gov.br", "servicodados.ibge.gov.br"],
+    },
+    "ouvidoria-por-orgao": {
+        "id": "ouvidoria-por-orgao",
+        "nome": "Atendimento da ouvidoria por órgão",
+        "unidade": "dias e porcentagem",
+        "formula": "média de dias até finalizar, e proporção finalizada dentro do prazo",
+        "dimensao": "orgao",
+        "prazo_padrao_dias": 30,
+        "fontes": ["dadosabertos.go.gov.br"],
     },
 }
 
@@ -113,8 +132,9 @@ def cria_app(limite: str = "60/minute") -> FastAPI:
     def valores(
         request: Request,
         indicador_id: str,
-        ano: int = 2025,
+        ano: int | None = None,
         municipio: str | None = None,
+        prazo: int = 30,
         chave: str = Depends(exige_chave),
     ):
         if indicador_id not in CATALOGO:
@@ -122,17 +142,24 @@ def cria_app(limite: str = "60/minute") -> FastAPI:
         with banco.conecta() as conn:
             if indicador_id == "leitos-rede-estadual":
                 linhas = indicadores.leitos_por_100mil(conn)
+            elif indicador_id == "ubs-por-habitante":
+                linhas = indicadores.ubs_por_10mil(conn)
+            elif indicador_id == "ouvidoria-por-orgao":
+                linhas = indicadores.ouvidoria_por_orgao(conn, ano, prazo)
             else:
-                linhas = indicadores.incidencia_dengue(conn, ano)
+                linhas = indicadores.incidencia_dengue(conn, ano or 2025)
         if municipio:
-            linhas = [l for l in linhas if l["codigo_ibge"] == municipio]
+            linhas = [l for l in linhas if l.get("codigo_ibge") == municipio]
         return {
             "dados": linhas,
             "total": len(linhas),
             "meta": {
                 "ano": ano,
+                "dimensao": CATALOGO[indicador_id]["dimensao"],
                 "fontes": CATALOGO[indicador_id]["fontes"],
-                "base_populacional": linhas[0]["base_populacional"] if linhas else None,
+                "base_populacional": (
+                    linhas[0].get("base_populacional") if linhas else None
+                ),
             },
         }
 

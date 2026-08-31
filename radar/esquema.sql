@@ -40,3 +40,22 @@ create table if not exists leito (
     coleta_id   bigint  references coleta,
     primary key (cnes, tipo, data)
 );
+
+create table if not exists ubs (
+    codigo_ibge text    not null references municipio,
+    unidades    integer not null check (unidades >= 0),
+    coleta_id   bigint  references coleta,
+    primary key (codigo_ibge)
+);
+
+create table if not exists manifestacao (
+    id        bigserial primary key,
+    ano       integer not null,
+    orgao     text    not null,
+    tipo      text    not null,
+    status    text    not null,
+    dias      integer check (dias >= 0),
+    total     integer not null check (total > 0),
+    coleta_id bigint  references coleta,
+    unique nulls not distinct (ano, orgao, tipo, status, dias)
+);

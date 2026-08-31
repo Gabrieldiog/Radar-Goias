@@ -12,6 +12,9 @@ from radar.municipios import Sentinela, para_codigo7
 BASE = "https://dadosabertos.go.gov.br/api/3/action/datastore_search_sql"
 DENGUE = "0c7c9ff8-cdb2-4cee-892d-c9ef28c0ba9f"
 LEITOS = "17b6c28d-02b4-4696-a843-3759c50de0a3"
+UBS = "ee0c17bf-e802-49bd-ac7d-5b1c71061bc1"
+# a ouvidoria publica um arquivo por ano
+MANIFESTACOES = {2026: "b350a63b-aaaa-450d-a377-e5dcc7701fd0"}
 # a agregação no portal já levou de 2 s a mais de 30 s
 ESPERA_MAXIMA = 120.0
 
@@ -113,3 +116,67 @@ def busca_leitos(cliente, ano: int):
     data = max(achadas, key=lambda s: (s[6:], s[3:5], s[:2]))
     resposta = cliente.json(f"{BASE}?sql={quote(sql_leitos(data))}", ESPERA_MAXIMA)
     return le_leitos(resposta.payload), data, resposta
+
+
+class Ubs(NamedTuple):
+    codigo_ibge: str
+    unidades: int
+
+
+class Manifestacao(NamedTuple):
+    ano: int
+    orgao: str
+    tipo: str
+    status: str
+    dias: int
+    total: int
+
+
+def sql_ubs(recurso: str = UBS, limite: int = 300) -> str:
+    return exige_limite(
+        'SELECT "codigo_ibge_municipio_gestor" AS ibge,'
+        ' COUNT(DISTINCT "codigo_cnes") AS ubs'
+        f' FROM "{recurso}" GROUP BY "codigo_ibge_municipio_gestor" LIMIT {limite}'
+    )
+
+
+def sql_manifestacoes(ano: int, limite: int = 9000) -> str:
+    return exige_limite(
+        'SELECT "sigla" AS orgao, "tipo_manifestacao" AS tipo, "ds_status" AS status,'
+        ' "dias_vida" AS dias, COUNT(*) AS total'
+        f' FROM "{MANIFESTACOES[ano]}"'
+        ' GROUP BY "sigla", "tipo_manifestacao", "ds_status", "dias_vida"'
+        f' LIMIT {limite}'
+    )
+
+
+def _registros(payload):
+    if not payload.get("success"):
+        raise ConsultaRecusada(f"o portal recusou a consulta: {payload.get('error')}")
+    return payload["result"]["records"]
+
+
+def le_ubs(payload) -> list[Ubs]:
+    unidades = []
+    for reg in _registros(payload):
+        try:
+            codigo = para_codigo7(reg["ibge"])
+        except Sentinela:
+            continue
+        unidades.append(Ubs(codigo, int(reg["ubs"])))
+    return unidades
+
+
+def le_manifestacoes(payload, ano: int) -> list[Manifestacao]:
+    return [
+        Manifestacao(
+            ano,
+            reg["orgao"],
+            reg["tipo"],
+            reg["status"],
+            # a fonte escreve "34.0", e deixa vazio quando não registrou o prazo
+            None if reg["dias"] is None else int(float(reg["dias"])),
+            int(reg["total"]),
+        )
+        for reg in _registros(payload)
+    ]

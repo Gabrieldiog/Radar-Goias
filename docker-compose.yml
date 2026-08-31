@@ -1,6 +1,6 @@
-# Sobe o banco do Radar com o esquema já aplicado: docker compose up -d
-# Porta 5433 por padrão, porque a 5432 costuma estar ocupada. Se a 5433 também
-# estiver, exporte RADAR_PORTA com outra antes de subir.
+# Sobe o Radar inteiro: banco, carga dos dados e API. Um comando só.
+#   docker compose up -d
+# A API fica em http://localhost:8000 e a chave de acesso é a de RADAR_CHAVES.
 services:
   banco:
     image: postgres:16
@@ -11,12 +11,21 @@ services:
       - "${RADAR_PORTA:-5433}:5432"
     volumes:
       - dados:/var/lib/postgresql/data
-      # o Postgres roda o que estiver aqui na primeira subida
-      - ./radar/esquema.sql:/docker-entrypoint-initdb.d/esquema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d radar_goias"]
       interval: 5s
-      retries: 10
+      retries: 20
+
+  api:
+    build: .
+    environment:
+      RADAR_BANCO_URL: postgresql://postgres@banco:5432/radar_goias
+      RADAR_CHAVES: ${RADAR_CHAVES:-demo}
+    ports:
+      - "${RADAR_PORTA_API:-8000}:8000"
+    depends_on:
+      banco:
+        condition: service_healthy
 
 volumes:
   dados:

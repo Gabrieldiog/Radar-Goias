@@ -32,3 +32,9 @@ h1 { font-size: 1.7rem; margin: 0 0 4px; }
 .detalhe { margin-top: 16px; min-height: 3em; }
 .rodape { margin-top: 24px; color: #777; font-size: 0.85rem; }
 .erro { color: #a4262c; }
+
+.tabela { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #eee; border-radius: 8px; }
+.tabela th, .tabela td { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; text-align: left; font-size: 0.9rem; }
+.tabela th { background: #f7f7f7; font-weight: 600; }
+.tabela td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.tabela caption { caption-side: bottom; padding: 12px; color: #666; font-size: 0.82rem; text-align: left; }

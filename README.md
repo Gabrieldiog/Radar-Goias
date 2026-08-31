@@ -281,25 +281,25 @@ Duas coisas que a pesquisa mostrou não valerem o esforço e que já ficam corta
 
 ## Como rodar
 
-Suba o banco com `docker compose up -d`. O esquema é aplicado sozinho na primeira subida, então não há passo de migração manual.
+O caminho mais curto é `docker compose up -d`. Isso sobe o banco, carrega os dados das fontes públicas e deixa a API respondendo em `http://localhost:8000`. A primeira subida demora alguns minutos, porque a coleta respeita o limite de uma requisição por segundo aos servidores do governo.
 
-A porta é a 5433, escolhida para não brigar com uma instalação de Postgres que já exista na 5432. Se a 5433 também estiver ocupada na sua máquina, suba com outra, por exemplo `RADAR_PORTA=5434 docker compose up -d`, e aponte a aplicação para ela com `RADAR_BANCO_URL`.
+A documentação interativa da API fica em `http://localhost:8000/docs`, e a chave de acesso padrão é `demo`. Para usar outra, suba com `RADAR_CHAVES=suachave docker compose up -d`.
 
-Crie o ambiente virtual com `python3 -m venv .venv` e instale com `.venv/bin/python -m pip install -e ".[dev]"`.
+Se a porta 5433 ou a 8000 estiverem ocupadas na sua máquina, troque com `RADAR_PORTA` e `RADAR_PORTA_API`.
 
-Carregue os dados com `.venv/bin/python -m radar`. Esse comando cria as tabelas se faltarem, carrega os 246 municípios, busca a população no IBGE e grava, registrando de qual requisição o dado veio. Pode rodar quantas vezes quiser, porque ele atualiza em vez de duplicar.
+### Rodando sem Docker
 
-Suba a API com `RADAR_CHAVES=sua-chave .venv/bin/uvicorn --factory radar.api:cria_app`. A documentação interativa fica em `/docs` e a rota `/saude` responde sem chave, para monitoramento.
+Suba um PostgreSQL, crie o ambiente virtual com `python3 -m venv .venv` e instale com `.venv/bin/python -m pip install -e ".[dev]"`.
 
-Rode os testes com `.venv/bin/python -m pytest`.
+Carregue os dados com `.venv/bin/python -m radar` e suba a API com `RADAR_CHAVES=demo .venv/bin/uvicorn --factory radar.api:cria_app`.
+
+A variável `RADAR_BANCO_URL` aponta para o banco, e é a única diferença entre rodar local e rodar publicado.
 
 ### O painel
 
 O painel fica na pasta `web` e é um projeto Next.js separado. Entre nela, instale com `pnpm install` e rode com `pnpm dev`. Ele sobe em `http://localhost:3000`.
 
 O navegador nunca fala com a API direto: o painel chama uma rota do próprio Next, que repassa o pedido por trás. Por isso não existe CORS entre as duas metades, e a chave de acesso fica só no servidor, sem chegar ao navegador. As duas variáveis que configuram isso estão em `web/.env.example`.
-
-Para apontar para outro banco, por exemplo o do Supabase, basta definir a variável de ambiente `RADAR_BANCO_URL`. É a única diferença entre rodar local e rodar publicado.
 
 ### Sobre os testes
 

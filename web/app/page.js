@@ -2,10 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Mapa from "./mapa";
+import Tabela from "./tabela";
 
 const INDICADORES = {
-  "leitos-rede-estadual": { campo: "por_100mil", rotulo: "Leitos da rede estadual por 100 mil hab" },
-  "incidencia-dengue": { campo: "por_100k", rotulo: "Casos de dengue por 100 mil hab" },
+  "leitos-rede-estadual": { campo: "por_100mil", rotulo: "Leitos por 100 mil hab", sufixo: "leitos por 100 mil habitantes" },
+  "ubs-por-habitante": { campo: "por_10mil", rotulo: "UBS por 10 mil hab", sufixo: "unidades por 10 mil habitantes" },
+  "incidencia-dengue": { campo: "por_100k", rotulo: "Dengue por 100 mil hab", sufixo: "casos por 100 mil habitantes" },
+  "ouvidoria-por-orgao": { campo: "tempo_medio", rotulo: "Ouvidoria por órgão", sufixo: "dias até responder" },
 };
 
 async function busca(caminho) {
@@ -17,7 +20,7 @@ async function busca(caminho) {
 export default function Painel() {
   const [malha, setMalha] = useState(null);
   const [escolhido, setEscolhido] = useState("leitos-rede-estadual");
-  const [linhas, setLinhas] = useState([]);
+  const [resposta, setResposta] = useState(null);
   const [selecionado, setSelecionado] = useState(null);
   const [erro, setErro] = useState(null);
 
@@ -26,16 +29,16 @@ export default function Painel() {
   }, []);
 
   useEffect(() => {
-    setLinhas([]);
-    busca(`/v1/indicadores/${escolhido}`)
-      .then((d) => setLinhas(d.dados))
-      .catch((e) => setErro(e.message));
+    setResposta(null);
+    setSelecionado(null);
+    busca(`/v1/indicadores/${escolhido}`).then(setResposta).catch((e) => setErro(e.message));
   }, [escolhido]);
 
   if (erro) return <main className="painel"><p className="erro">Não consegui falar com a API: {erro}</p></main>;
-  if (!malha) return <main className="painel"><p>Carregando o mapa...</p></main>;
 
-  const campo = INDICADORES[escolhido].campo;
+  const { campo, sufixo } = INDICADORES[escolhido];
+  const linhas = resposta?.dados ?? [];
+  const porOrgao = resposta?.meta?.dimensao === "orgao";
   const valores = Object.fromEntries(linhas.map((l) => [l.codigo_ibge, l[campo]]));
   const detalhe = linhas.find((l) => l.codigo_ibge === selecionado);
 
@@ -52,18 +55,32 @@ export default function Painel() {
         ))}
       </div>
 
-      <Mapa malha={malha} valores={valores} selecionado={selecionado} aoSelecionar={setSelecionado} />
-
-      {detalhe ? (
-        <p className="detalhe">
-          <strong>{detalhe.nome}</strong>: {detalhe[campo]} {escolhido === "leitos-rede-estadual" ? "leitos" : "casos"} por 100 mil habitantes,
-          em {detalhe.habitantes.toLocaleString("pt-BR")} moradores.
-        </p>
+      {!resposta ? (
+        <p>Carregando...</p>
+      ) : porOrgao ? (
+        <Tabela linhas={linhas} />
+      ) : !malha ? (
+        <p>Carregando o mapa...</p>
       ) : (
-        <p className="detalhe">Clique num município para ver o número dele. Municípios em cinza não têm dado para este indicador.</p>
+        <>
+          <Mapa malha={malha} valores={valores} selecionado={selecionado} aoSelecionar={setSelecionado} />
+          <p className="detalhe">
+            {detalhe ? (
+              <>
+                <strong>{detalhe.nome}</strong>: {detalhe[campo]} {sufixo}, em{" "}
+                {detalhe.habitantes.toLocaleString("pt-BR")} moradores.
+              </>
+            ) : (
+              "Clique num município para ver o número dele. Municípios em cinza não têm dado para este indicador."
+            )}
+          </p>
+        </>
       )}
 
-      <p className="rodape">{linhas.length} municípios com dado. Fonte: portal de dados abertos de Goiás, Ministério da Saúde e IBGE.</p>
+      <p className="rodape">
+        {linhas.length} {porOrgao ? "órgãos" : "municípios"} com dado.
+        {resposta && ` Fonte: ${resposta.meta.fontes.join(", ")}.`}
+      </p>
     </main>
   );
 }

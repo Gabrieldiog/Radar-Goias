@@ -59,7 +59,12 @@ def test_municipio_inexistente_da_404(cliente):
 def test_catalogo_lista_o_indicador(cliente):
     r = cliente.get(f"/v1/indicadores?chave={CHAVE}")
     ids = {i["id"] for i in r.json()["dados"]}
-    assert ids == {"incidencia-dengue", "leitos-rede-estadual"}
+    assert ids == {
+        "incidencia-dengue",
+        "leitos-rede-estadual",
+        "ubs-por-habitante",
+        "ouvidoria-por-orgao",
+    }
 
 
 def test_indicador_devolve_valor_e_procedencia(cliente):
@@ -116,3 +121,19 @@ def test_ficha_do_municipio_traz_os_indicadores(cliente):
     assert corpo["indicadores"]["incidencia-dengue"] == pytest.approx(2543.2, abs=1)
     # sem leito cadastrado o campo existe, mas vem vazio em vez de sumir
     assert corpo["indicadores"]["leitos-rede-estadual"] is None
+
+
+# Verifica que o catálogo diz se o indicador é por município ou por órgão,
+# porque o painel precisa saber se desenha mapa ou tabela.
+def test_catalogo_declara_a_dimensao(cliente):
+    r = cliente.get(f"/v1/indicadores?chave={CHAVE}")
+    dims = {i["id"]: i["dimensao"] for i in r.json()["dados"]}
+    assert dims["incidencia-dengue"] == "municipio"
+    assert dims["ouvidoria-por-orgao"] == "orgao"
+
+
+# Verifica que o indicador por órgão responde sem quebrar na parte de município.
+def test_indicador_por_orgao_responde(cliente):
+    r = cliente.get(f"/v1/indicadores/ouvidoria-por-orgao?chave={CHAVE}")
+    assert r.status_code == 200
+    assert r.json()["meta"]["dimensao"] == "orgao"

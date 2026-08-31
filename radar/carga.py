@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 from radar import banco
 from radar.fontes import ckan_go, ibge, ms_cnes
 
@@ -35,3 +37,21 @@ def executa_leitos(conn, cliente, ano: int = 2026) -> dict:
         "leitos": banco.grava_leitos(conn, linhas, coleta),
         "leitos_sem_municipio": len(sem_municipio),
     }
+
+
+def executa_ubs(conn, cliente) -> dict:
+    resposta = cliente.json(
+        f"{ckan_go.BASE}?sql={quote(ckan_go.sql_ubs())}", ckan_go.ESPERA_MAXIMA
+    )
+    unidades = ckan_go.le_ubs(resposta.payload)
+    coleta = banco.grava_coleta(conn, "ckan-go", resposta.url, resposta.status, resposta.bytes)
+    return {"ubs": banco.grava_ubs(conn, unidades, coleta)}
+
+
+def executa_ouvidoria(conn, cliente, ano: int = 2026) -> dict:
+    resposta = cliente.json(
+        f"{ckan_go.BASE}?sql={quote(ckan_go.sql_manifestacoes(ano))}", ckan_go.ESPERA_MAXIMA
+    )
+    linhas = ckan_go.le_manifestacoes(resposta.payload, ano)
+    coleta = banco.grava_coleta(conn, "ckan-go", resposta.url, resposta.status, resposta.bytes)
+    return {"manifestacoes": banco.grava_manifestacoes(conn, linhas, coleta)}

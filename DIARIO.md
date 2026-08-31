@@ -66,3 +66,17 @@ O mapa é desenhado em SVG direto do contorno do IBGE, sem biblioteca de mapa. P
 O navegador nunca fala com a API direto. Ele chama uma rota do próprio Next, que repassa o pedido por trás com a chave. Conferimos no HTML entregue ao navegador: nem a chave nem o endereço interno da API aparecem lá. Isso também elimina o problema de CORS entre as duas metades.
 
 Municípios sem dado ficam em cinza em vez de sumir do mapa, e a legenda avisa isso, para ninguém achar que é falha de carregamento.
+
+## Dia 9, 20 de agosto de 2026
+
+Abrimos um eixo novo. Além de saúde, o Radar agora cobre atendimento ao cidadão, com o desempenho da ouvidoria por órgão, e ganhou também as unidades básicas de saúde por habitante. São quatro indicadores no total, e o painel deixou de ser só mapa: indicador por órgão vira tabela, porque não cabe em mapa.
+
+Dois achados sobre o dado. Nas UBS, a lógica se inverte em relação aos leitos: Goiânia tem a pior cobertura por habitante do estado, 0,58 unidade por 10 mil, enquanto cidades pequenas passam de 20. Na ouvidoria, o prazo legal de 30 dias não separa ninguém, porque quase todos cumprem; o que separa é o tempo médio, que vai de 2,5 dias na SEMAD a 16,5 na UEG.
+
+Dois erros nossos apareceram e valeram a pena. O primeiro: a fonte deixa o campo de dias vazio em nove registros, e o código transformava vazio em zero, o que fazia a manifestação parecer respondida na hora e puxava a média para baixo. Além disso, sete linhas colidiam e eram sobrescritas, perdendo contagem. Agora vazio continua vazio, fica fora da média, e a soma bate exatamente com as 30.459 manifestações da fonte.
+
+O segundo só apareceu testando de ponta a ponta: a rota usava 2025 como ano padrão, mas a ouvidoria só tem 2026, então o painel abria vazio. Agora o ano padrão vem do dado, e não fixo no código.
+
+Também separamos o banco de testes do banco de trabalho. Antes, rodar os testes apagava os dados carregados, o que já tinha atrapalhado quatro vezes.
+
+Fechamos o dia colocando o sistema inteiro no Docker. Antes, o compose subia só o banco; agora ele constrói a API, sobe o banco, roda a coleta buscando nas fontes públicas e deixa tudo respondendo. Testamos do zero, apagando até o volume de dados: em 70 segundos o sistema estava de pé com os quatro indicadores funcionando. É isso que garante que o projeto rode na máquina de qualquer pessoa com um comando só.

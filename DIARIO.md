@@ -80,3 +80,15 @@ O segundo só apareceu testando de ponta a ponta: a rota usava 2025 como ano pad
 Também separamos o banco de testes do banco de trabalho. Antes, rodar os testes apagava os dados carregados, o que já tinha atrapalhado quatro vezes.
 
 Fechamos o dia colocando o sistema inteiro no Docker. Antes, o compose subia só o banco; agora ele constrói a API, sobe o banco, roda a coleta buscando nas fontes públicas e deixa tudo respondendo. Testamos do zero, apagando até o volume de dados: em 70 segundos o sistema estava de pé com os quatro indicadores funcionando. É isso que garante que o projeto rode na máquina de qualquer pessoa com um comando só.
+
+## Dia 10, 20 de agosto de 2026
+
+Abrimos o eixo de dinheiro público, que era o primeiro da lista e o último a sair. Agora o Radar traz quanto cada município empenhou em saúde, educação e segurança, direto da declaração anual que eles entregam ao Tesouro Nacional, e divide pela população.
+
+São seis indicadores no total, cobrindo três dos cinco eixos.
+
+Essa fonte é lenta: o Tesouro exige um pedido por município, e respeitamos o limite de um por segundo, então a carga leva alguns minutos. Por isso ela ficou num comando separado. Como o dado é anual, não faz sentido pagar esse tempo toda vez.
+
+A armadilha do dia foi de leitura. O Tesouro coloca função e subfunção no mesmo campo, então aparece "12 - Educação" e logo abaixo "12.365 - Educação Infantil", "12.366" e "12.367". Quem casar por pedaço do nome conta educação quatro vezes. Nosso código já casava exato, mas o teste não provava isso, e a mutação passou incólume. Reescrevemos o teste para exigir o valor certo, e agora ele pega.
+
+Antes de começar o dia, juntamos os cinco branches acumulados na main, que já estava difícil de acompanhar.

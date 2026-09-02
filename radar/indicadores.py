@@ -100,3 +100,30 @@ def ouvidoria_por_orgao(conn, ano: int | None = None, prazo: int = 30) -> list[d
         ano = conn.execute("select max(ano) from manifestacao").fetchone()[0]
     with conn.cursor(row_factory=dict_row) as cur:
         return cur.execute(OUVIDORIA_POR_ORGAO, (prazo, prazo, ano)).fetchall()
+
+
+DESPESA_PER_CAPITA = """
+with pop as (
+    select distinct on (codigo_ibge) codigo_ibge, ano, habitantes, base
+    from populacao where base = %s order by codigo_ibge, ano desc
+)
+select d.codigo_ibge, m.nome, d.exercicio, d.funcao, d.empenhado, d.pago,
+       p.habitantes, p.ano as ano_populacao, p.base as base_populacional,
+       round(d.empenhado / p.habitantes, 2)::float8 as por_habitante
+from despesa_funcao d
+join municipio m using (codigo_ibge)
+join pop p using (codigo_ibge)
+where d.funcao = %s and d.exercicio = %s
+order by por_habitante desc
+"""
+
+
+def despesa_per_capita(
+    conn, funcao: str, exercicio: int | None = None, base: str = "estimativa"
+) -> list[dict]:
+    if exercicio is None:
+        exercicio = conn.execute(
+            "select max(exercicio) from despesa_funcao where funcao = %s", (funcao,)
+        ).fetchone()[0]
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(DESPESA_PER_CAPITA, (base, funcao, exercicio)).fetchall()

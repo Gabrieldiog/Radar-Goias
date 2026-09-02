@@ -112,3 +112,15 @@ def grava_manifestacoes(conn, linhas, coleta_id=None) -> int:
         linhas,
     )
     return len(linhas)
+
+
+def grava_despesas(conn, linhas, coleta_id=None) -> int:
+    linhas = [(*d, coleta_id) for d in linhas]
+    conn.cursor().executemany(
+        "insert into despesa_funcao (codigo_ibge, exercicio, funcao, empenhado, pago, coleta_id)"
+        " values (%s, %s, %s, %s, %s, %s)"
+        " on conflict (codigo_ibge, exercicio, funcao) do update set"
+        " empenhado = excluded.empenhado, pago = excluded.pago, coleta_id = excluded.coleta_id",
+        linhas,
+    )
+    return len(linhas)

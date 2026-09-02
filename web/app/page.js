@@ -8,6 +8,8 @@ const INDICADORES = {
   "leitos-rede-estadual": { campo: "por_100mil", rotulo: "Leitos por 100 mil hab", sufixo: "leitos por 100 mil habitantes" },
   "ubs-por-habitante": { campo: "por_10mil", rotulo: "UBS por 10 mil hab", sufixo: "unidades por 10 mil habitantes" },
   "incidencia-dengue": { campo: "por_100k", rotulo: "Dengue por 100 mil hab", sufixo: "casos por 100 mil habitantes" },
+  "gasto-saude-por-habitante": { campo: "por_habitante", rotulo: "Gasto em saúde por hab", sufixo: "reais por habitante no ano" },
+  "gasto-educacao-por-habitante": { campo: "por_habitante", rotulo: "Gasto em educação por hab", sufixo: "reais por habitante no ano" },
   "ouvidoria-por-orgao": { campo: "tempo_medio", rotulo: "Ouvidoria por órgão", sufixo: "dias até responder" },
 };
 

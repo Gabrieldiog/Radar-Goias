@@ -59,3 +59,13 @@ create table if not exists manifestacao (
     coleta_id bigint  references coleta,
     unique nulls not distinct (ano, orgao, tipo, status, dias)
 );
+
+create table if not exists despesa_funcao (
+    codigo_ibge text    not null references municipio,
+    exercicio   integer not null,
+    funcao      text    not null check (funcao in ('saude', 'educacao', 'seguranca')),
+    empenhado   numeric not null check (empenhado >= 0),
+    pago        numeric not null check (pago >= 0),
+    coleta_id   bigint  references coleta,
+    primary key (codigo_ibge, exercicio, funcao)
+);

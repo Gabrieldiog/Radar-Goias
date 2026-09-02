@@ -64,6 +64,8 @@ def test_catalogo_lista_o_indicador(cliente):
         "leitos-rede-estadual",
         "ubs-por-habitante",
         "ouvidoria-por-orgao",
+        "gasto-saude-por-habitante",
+        "gasto-educacao-por-habitante",
     }
 
 
@@ -137,3 +139,12 @@ def test_indicador_por_orgao_responde(cliente):
     r = cliente.get(f"/v1/indicadores/ouvidoria-por-orgao?chave={CHAVE}")
     assert r.status_code == 200
     assert r.json()["meta"]["dimensao"] == "orgao"
+
+
+# Verifica que a ficha do município acompanha o catálogo sozinha. Antes os
+# indicadores estavam fixos no código e a ficha ficava para trás a cada um novo.
+def test_ficha_cobre_todos_os_indicadores_por_municipio(cliente):
+    catalogo = cliente.get(f"/v1/indicadores?chave={CHAVE}").json()["dados"]
+    esperados = {i["id"] for i in catalogo if i["dimensao"] == "municipio"}
+    ficha = cliente.get(f"/v1/municipios/5208707?chave={CHAVE}").json()
+    assert set(ficha["indicadores"]) == esperados

@@ -107,3 +107,52 @@ def test_ouvidoria_sem_ano_usa_o_mais_recente(conn):
         ],
     )
     assert indicadores.ouvidoria_por_orgao(conn)[0]["total"] == 20
+
+
+# Verifica a conta do gasto por habitante.
+def test_gasto_per_capita(conn):
+    from radar.fontes.siconfi import Despesa
+
+    banco.grava_despesas(conn, [Despesa("5208707", 2025, "saude", 1500000000.0, 1400000000.0)])
+    linha = indicadores.despesa_per_capita(conn, "saude")[0]
+    assert linha["por_habitante"] == pytest.approx(1000.0, abs=1)
+
+
+# Verifica que o indicador usa o empenhado, e informa também o pago, porque os
+# dois números contam histórias diferentes sobre o mesmo orçamento.
+def test_traz_empenhado_e_pago(conn):
+    from radar.fontes.siconfi import Despesa
+
+    banco.grava_despesas(conn, [Despesa("5208707", 2025, "educacao", 300.0, 200.0)])
+    linha = indicadores.despesa_per_capita(conn, "educacao")[0]
+    assert float(linha["empenhado"]) == 300.0
+    assert float(linha["pago"]) == 200.0
+
+
+# Verifica que cada função é consultada separadamente.
+def test_cada_funcao_e_separada(conn):
+    from radar.fontes.siconfi import Despesa
+
+    banco.grava_despesas(
+        conn,
+        [
+            Despesa("5208707", 2025, "saude", 100.0, 100.0),
+            Despesa("5208707", 2025, "educacao", 200.0, 200.0),
+        ],
+    )
+    assert len(indicadores.despesa_per_capita(conn, "saude")) == 1
+    assert float(indicadores.despesa_per_capita(conn, "educacao")[0]["empenhado"]) == 200.0
+
+
+# Verifica que, sem exercício informado, usa o mais recente que existe.
+def test_sem_exercicio_usa_o_mais_recente(conn):
+    from radar.fontes.siconfi import Despesa
+
+    banco.grava_despesas(
+        conn,
+        [
+            Despesa("5208707", 2024, "saude", 100.0, 100.0),
+            Despesa("5208707", 2025, "saude", 999.0, 999.0),
+        ],
+    )
+    assert float(indicadores.despesa_per_capita(conn, "saude")[0]["empenhado"]) == 999.0

@@ -41,6 +41,22 @@ CATALOGO = {
         "dimensao": "municipio",
         "fontes": ["dadosabertos.go.gov.br", "servicodados.ibge.gov.br"],
     },
+    "gasto-saude-por-habitante": {
+        "id": "gasto-saude-por-habitante",
+        "nome": "Gasto municipal em saúde por habitante",
+        "unidade": "reais por habitante no ano",
+        "formula": "despesa empenhada na função saúde / habitantes",
+        "dimensao": "municipio",
+        "fontes": ["apidatalake.tesouro.gov.br", "servicodados.ibge.gov.br"],
+    },
+    "gasto-educacao-por-habitante": {
+        "id": "gasto-educacao-por-habitante",
+        "nome": "Gasto municipal em educação por habitante",
+        "unidade": "reais por habitante no ano",
+        "formula": "despesa empenhada na função educação / habitantes",
+        "dimensao": "municipio",
+        "fontes": ["apidatalake.tesouro.gov.br", "servicodados.ibge.gov.br"],
+    },
     "ouvidoria-por-orgao": {
         "id": "ouvidoria-por-orgao",
         "nome": "Atendimento da ouvidoria por órgão",
@@ -67,6 +83,29 @@ def exige_chave(request: Request) -> str:
 def balde(request: Request) -> str:
     chave = request.headers.get("x-api-key") or request.query_params.get("chave")
     return f"chave:{chave}" if chave in chaves() else f"ip:{get_remote_address(request)}"
+
+
+# o campo que carrega o valor muda de indicador para indicador
+CAMPO = {
+    "incidencia-dengue": "por_100k",
+    "leitos-rede-estadual": "por_100mil",
+    "ubs-por-habitante": "por_10mil",
+    "gasto-saude-por-habitante": "por_habitante",
+    "gasto-educacao-por-habitante": "por_habitante",
+    "ouvidoria-por-orgao": "tempo_medio",
+}
+
+
+def _linhas(conn, indicador_id, ano=None, prazo=30):
+    if indicador_id == "leitos-rede-estadual":
+        return indicadores.leitos_por_100mil(conn)
+    if indicador_id == "ubs-por-habitante":
+        return indicadores.ubs_por_10mil(conn)
+    if indicador_id.startswith("gasto-"):
+        return indicadores.despesa_per_capita(conn, indicador_id.split("-")[1])
+    if indicador_id == "ouvidoria-por-orgao":
+        return indicadores.ouvidoria_por_orgao(conn, ano, prazo)
+    return indicadores.incidencia_dengue(conn, ano or 2025)
 
 
 def _do_municipio(linhas, codigo_ibge, campo):
@@ -108,12 +147,9 @@ def cria_app(limite: str = "60/minute") -> FastAPI:
             raise HTTPException(404, f"município desconhecido: {codigo_ibge}")
         with banco.conecta() as conn:
             linha["indicadores"] = {
-                "incidencia-dengue": _do_municipio(
-                    indicadores.incidencia_dengue(conn, 2025), codigo_ibge, "por_100k"
-                ),
-                "leitos-rede-estadual": _do_municipio(
-                    indicadores.leitos_por_100mil(conn), codigo_ibge, "por_100mil"
-                ),
+                id: _do_municipio(_linhas(conn, id), codigo_ibge, CAMPO[id])
+                for id, meta in CATALOGO.items()
+                if meta["dimensao"] == "municipio"
             }
         return linha
 
@@ -140,14 +176,7 @@ def cria_app(limite: str = "60/minute") -> FastAPI:
         if indicador_id not in CATALOGO:
             raise HTTPException(404, f"indicador desconhecido: {indicador_id}")
         with banco.conecta() as conn:
-            if indicador_id == "leitos-rede-estadual":
-                linhas = indicadores.leitos_por_100mil(conn)
-            elif indicador_id == "ubs-por-habitante":
-                linhas = indicadores.ubs_por_10mil(conn)
-            elif indicador_id == "ouvidoria-por-orgao":
-                linhas = indicadores.ouvidoria_por_orgao(conn, ano, prazo)
-            else:
-                linhas = indicadores.incidencia_dengue(conn, ano or 2025)
+            linhas = _linhas(conn, indicador_id, ano, prazo)
         if municipio:
             linhas = [l for l in linhas if l.get("codigo_ibge") == municipio]
         return {

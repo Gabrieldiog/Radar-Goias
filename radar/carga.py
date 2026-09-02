@@ -1,7 +1,7 @@
 from urllib.parse import quote
 
-from radar import banco
-from radar.fontes import ckan_go, ibge, ms_cnes
+from radar import banco, municipios
+from radar.fontes import ckan_go, ibge, ms_cnes, siconfi
 
 
 def executa(conn, cliente) -> dict:
@@ -55,3 +55,26 @@ def executa_ouvidoria(conn, cliente, ano: int = 2026) -> dict:
     linhas = ckan_go.le_manifestacoes(resposta.payload, ano)
     coleta = banco.grava_coleta(conn, "ckan-go", resposta.url, resposta.status, resposta.bytes)
     return {"manifestacoes": banco.grava_manifestacoes(conn, linhas, coleta)}
+
+
+def executa_financas(conn, cliente, exercicio: int = 2025) -> dict:
+    """Busca a despesa por função dos 246 municípios no Tesouro.
+
+    É lento de propósito: uma requisição por segundo, então leva alguns minutos.
+    Por isso fica num comando separado, e não na carga de todo dia.
+    """
+    banco.aplica_esquema(conn)
+    banco.carrega_municipios(conn)
+    linhas, sem_entrega = [], []
+    for codigo in sorted(municipios.todos()):
+        try:
+            despesas, resposta = siconfi.busca_despesas(cliente, codigo, exercicio)
+        except siconfi.RespostaSemDados:
+            sem_entrega.append(codigo)
+            continue
+        coleta = banco.grava_coleta(
+            conn, "siconfi", resposta.url, resposta.status, resposta.bytes
+        )
+        banco.grava_despesas(conn, despesas, coleta)
+        linhas += despesas
+    return {"despesas": len(linhas), "municipios_sem_entrega": len(sem_entrega)}

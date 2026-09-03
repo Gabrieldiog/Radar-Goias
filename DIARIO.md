@@ -106,3 +106,15 @@ Uma ressalva estatística que precisa acompanhar esse indicador: cidade pequena 
 Também aprendemos que o tipo dos campos muda de um ano para o outro na mesma fonte: a pesquisa viu os campos de sexo como texto em 2025, e em 2026 eles vêm como número.
 
 São sete indicadores cobrindo quatro dos cinco eixos. Falta educação.
+
+## Dia 12, 21 de agosto de 2026
+
+O painel deixou de ser um mapa com dois botões. Agora ele responde três perguntas: onde está, uma coisa explica a outra, e como mudou. Os sete indicadores aparecem agrupados pelos quatro eixos, e cada um traz uma frase de destaque calculada do próprio dado, não escrita à mão. Trocar de indicador troca a frase, e é ela que diz, por exemplo, que 223 dos 246 municípios não têm nenhum leito da rede estadual.
+
+A API ganhou a série histórica de dengue, dezessete anos, com filtro por município. Com ela dá para ver que 2024 teve 437 mil casos no estado, 12,6 vezes o ano mais brando da série, e que 2026 já está em 157 mil com o ano pela metade.
+
+Os dois gráficos novos foram refeitos no mesmo dia, porque a primeira versão não se explicava sozinha. A série era uma linha, que obriga o leitor a medir altura contra o eixo, e virou barra com o número escrito em cima de cada ano. O cruzamento era uma nuvem de 246 pontos, que não responde nada a quem olha, e virou cinco grupos de 49 municípios ordenados pelo primeiro indicador, com o segundo na altura da barra.
+
+Dois erros apareceram quando rodamos as trinta combinações possíveis contra o banco em vez de olhar só uma. A frase que resume o cruzamento comparava apenas as pontas, então anunciava que uma coisa acompanha a outra num desenho que subia e descia no meio. Agora ela também conta quantos degraus sobem. E qualquer cruzamento com leitos formava grupos de quatro cidades, porque leitos só existe em 23 municípios, então abaixo de cinquenta ela avisa isso em vez de fingir que achou padrão.
+
+Trocamos média por mediana nas barras pelo mesmo motivo que já tinha aparecido no eixo de segurança: uma cidade de dois mil habitantes com número fora da curva desloca a média do grupo inteiro.

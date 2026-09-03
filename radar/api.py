@@ -171,6 +171,15 @@ def cria_app(limite: str = "60/minute") -> FastAPI:
             malha.geojson(), headers={"cache-control": "public, max-age=86400"}
         )
 
+    # a série alimenta o gráfico de evolução; sem município vem o estado inteiro
+    @app.get("/v1/series/dengue")
+    def serie_dengue(
+        request: Request, municipio: str | None = None, chave: str = Depends(exige_chave)
+    ):
+        with banco.conecta() as conn:
+            linhas = indicadores.serie_dengue(conn, municipio)
+        return {"dados": linhas, "total": len(linhas)}
+
     @app.get("/v1/indicadores")
     def catalogo(request: Request, chave: str = Depends(exige_chave)):
         return {"dados": list(CATALOGO.values()), "total": len(CATALOGO)}

@@ -149,3 +149,10 @@ def test_ficha_cobre_todos_os_indicadores_por_municipio(cliente):
     esperados = {i["id"] for i in catalogo if i["dimensao"] == "municipio"}
     ficha = cliente.get(f"/v1/municipios/5208707?chave={CHAVE}").json()
     assert set(ficha["indicadores"]) == esperados
+
+
+# Verifica que a série de dengue responde, para o gráfico de evolução.
+def test_serie_de_dengue_responde(cliente):
+    r = cliente.get(f"/v1/series/dengue?chave={CHAVE}")
+    assert r.status_code == 200
+    assert r.json()["dados"][0]["ano"] == 2025

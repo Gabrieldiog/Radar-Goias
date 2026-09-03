@@ -159,3 +159,17 @@ def ocorrencias_por_100mil(
         ).fetchone()[0]
     with conn.cursor(row_factory=dict_row) as cur:
         return cur.execute(OCORRENCIAS_POR_100MIL, (base, evento, ano)).fetchall()
+
+
+SERIE_DENGUE = """
+select ano, sum(casos)::int as casos, count(*)::int as municipios
+from caso_dengue
+where (%s::text is null or codigo_ibge = %s::text)
+group by ano
+order by ano
+"""
+
+
+def serie_dengue(conn, codigo_ibge: str | None = None) -> list[dict]:
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(SERIE_DENGUE, (codigo_ibge, codigo_ibge)).fetchall()

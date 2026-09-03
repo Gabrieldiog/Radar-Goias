@@ -205,3 +205,32 @@ def test_abrangencias_nao_se_somam(conn):
         "Estadual": 30,
         "Polícia Rodoviária Federal": 12,
     }
+
+
+# Verifica a série de dengue por ano, que alimenta o gráfico de evolução.
+def test_serie_de_dengue_por_ano(conn):
+    from radar.fontes.ckan_go import Caso
+
+    banco.grava_casos_dengue(
+        conn,
+        [
+            Caso("5208707", 2024, 40000),
+            Caso("5208707", 2025, 38000),
+            Caso("5200050", 2024, 500),
+        ],
+    )
+    serie = indicadores.serie_dengue(conn)
+    assert [l["ano"] for l in serie] == [2024, 2025]
+    assert serie[0]["casos"] == 40500
+    assert serie[0]["municipios"] == 2
+
+
+# Verifica que dá para pedir a série de um município só.
+def test_serie_de_um_municipio(conn):
+    from radar.fontes.ckan_go import Caso
+
+    banco.grava_casos_dengue(
+        conn, [Caso("5208707", 2024, 40000), Caso("5200050", 2024, 500)]
+    )
+    serie = indicadores.serie_dengue(conn, "5208707")
+    assert serie[0]["casos"] == 40000

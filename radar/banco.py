@@ -124,3 +124,16 @@ def grava_despesas(conn, linhas, coleta_id=None) -> int:
         linhas,
     )
     return len(linhas)
+
+
+def grava_ocorrencias(conn, linhas, coleta_id=None) -> int:
+    linhas = [(*o, coleta_id) for o in linhas]
+    conn.cursor().executemany(
+        "insert into ocorrencia"
+        " (codigo_ibge, ano, mes, evento, abrangencia, vitimas, coleta_id)"
+        " values (%s, %s, %s, %s, %s, %s, %s)"
+        " on conflict (codigo_ibge, ano, mes, evento, abrangencia) do update set"
+        " vitimas = excluded.vitimas, coleta_id = excluded.coleta_id",
+        linhas,
+    )
+    return len(linhas)

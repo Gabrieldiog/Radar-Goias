@@ -92,3 +92,17 @@ Essa fonte é lenta: o Tesouro exige um pedido por município, e respeitamos o l
 A armadilha do dia foi de leitura. O Tesouro coloca função e subfunção no mesmo campo, então aparece "12 - Educação" e logo abaixo "12.365 - Educação Infantil", "12.366" e "12.367". Quem casar por pedaço do nome conta educação quatro vezes. Nosso código já casava exato, mas o teste não provava isso, e a mutação passou incólume. Reescrevemos o teste para exigir o valor certo, e agora ele pega.
 
 Antes de começar o dia, juntamos os cinco branches acumulados na main, que já estava difícil de acompanhar.
+
+## Dia 11, 20 de agosto de 2026
+
+O eixo de segurança entrou, e ele era o mais difícil. A fonte estadual não serve, como a pesquisa já tinha mostrado, então usamos a base nacional do Ministério da Justiça. São 31 tipos de ocorrência publicados, mas só 11 vêm com município; os outros existem apenas no total do estado, e isso precisa ser dito no painel para ninguém achar que esquecemos o crime patrimonial.
+
+A planilha tem 13 MB compactada e mais de 200 MB por dentro, então é lida em fluxo, uma linha por vez. Carregar Goiás inteiro leva 49 segundos.
+
+O resultado tem um número que vale a apresentação: 138 dos 246 municípios não registraram nenhum homicídio nos sete meses de 2026. A própria secretaria de segurança cita esse tipo de dado nos comunicados dela, mas nunca publica a planilha que permitiria conferir. Agora dá para conferir.
+
+Uma ressalva estatística que precisa acompanhar esse indicador: cidade pequena com duas vítimas aparece com taxa altíssima. Não é erro de conta, é o denominador pequeno, e o painel precisa avisar.
+
+Também aprendemos que o tipo dos campos muda de um ano para o outro na mesma fonte: a pesquisa viu os campos de sexo como texto em 2025, e em 2026 eles vêm como número.
+
+São sete indicadores cobrindo quatro dos cinco eixos. Falta educação.

@@ -57,6 +57,14 @@ CATALOGO = {
         "dimensao": "municipio",
         "fontes": ["apidatalake.tesouro.gov.br", "servicodados.ibge.gov.br"],
     },
+    "homicidio-por-100mil": {
+        "id": "homicidio-por-100mil",
+        "nome": "Homicídio doloso por 100 mil habitantes",
+        "unidade": "vítimas por 100 mil habitantes no ano",
+        "formula": "vítimas de homicídio doloso no ano / habitantes * 100000",
+        "dimensao": "municipio",
+        "fontes": ["www.gov.br/mj", "servicodados.ibge.gov.br"],
+    },
     "ouvidoria-por-orgao": {
         "id": "ouvidoria-por-orgao",
         "nome": "Atendimento da ouvidoria por órgão",
@@ -93,6 +101,7 @@ CAMPO = {
     "gasto-saude-por-habitante": "por_habitante",
     "gasto-educacao-por-habitante": "por_habitante",
     "ouvidoria-por-orgao": "tempo_medio",
+    "homicidio-por-100mil": "por_100mil",
 }
 
 
@@ -103,6 +112,8 @@ def _linhas(conn, indicador_id, ano=None, prazo=30):
         return indicadores.ubs_por_10mil(conn)
     if indicador_id.startswith("gasto-"):
         return indicadores.despesa_per_capita(conn, indicador_id.split("-")[1])
+    if indicador_id == "homicidio-por-100mil":
+        return indicadores.ocorrencias_por_100mil(conn, "Homicídio doloso", ano)
     if indicador_id == "ouvidoria-por-orgao":
         return indicadores.ouvidoria_por_orgao(conn, ano, prazo)
     return indicadores.incidencia_dengue(conn, ano or 2025)

@@ -66,6 +66,7 @@ def test_catalogo_lista_o_indicador(cliente):
         "ouvidoria-por-orgao",
         "gasto-saude-por-habitante",
         "gasto-educacao-por-habitante",
+        "homicidio-por-100mil",
     }
 
 

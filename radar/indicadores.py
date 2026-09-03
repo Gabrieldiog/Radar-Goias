@@ -127,3 +127,35 @@ def despesa_per_capita(
         ).fetchone()[0]
     with conn.cursor(row_factory=dict_row) as cur:
         return cur.execute(DESPESA_PER_CAPITA, (base, funcao, exercicio)).fetchall()
+
+
+# a abrangência entra no agrupamento porque o mesmo evento aparece medido por
+# forças diferentes, e somar as duas contaria a mesma morte duas vezes
+OCORRENCIAS_POR_100MIL = """
+with pop as (
+    select distinct on (codigo_ibge) codigo_ibge, ano, habitantes, base
+    from populacao where base = %s order by codigo_ibge, ano desc
+)
+select o.codigo_ibge, m.nome, o.evento, o.abrangencia, o.ano,
+       sum(o.vitimas)::int as vitimas,
+       p.habitantes, p.ano as ano_populacao, p.base as base_populacional,
+       round(sum(o.vitimas) * 100000.0 / p.habitantes, 2)::float8 as por_100mil
+from ocorrencia o
+join municipio m using (codigo_ibge)
+join pop p using (codigo_ibge)
+where o.evento = %s and o.ano = %s
+group by o.codigo_ibge, m.nome, o.evento, o.abrangencia, o.ano,
+         p.habitantes, p.ano, p.base
+order by por_100mil desc
+"""
+
+
+def ocorrencias_por_100mil(
+    conn, evento: str, ano: int | None = None, base: str = "estimativa"
+) -> list[dict]:
+    if ano is None:
+        ano = conn.execute(
+            "select max(ano) from ocorrencia where evento = %s", (evento,)
+        ).fetchone()[0]
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(OCORRENCIAS_POR_100MIL, (base, evento, ano)).fetchall()

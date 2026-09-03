@@ -10,6 +10,7 @@ const INDICADORES = {
   "incidencia-dengue": { campo: "por_100k", rotulo: "Dengue por 100 mil hab", sufixo: "casos por 100 mil habitantes" },
   "gasto-saude-por-habitante": { campo: "por_habitante", rotulo: "Gasto em saúde por hab", sufixo: "reais por habitante no ano" },
   "gasto-educacao-por-habitante": { campo: "por_habitante", rotulo: "Gasto em educação por hab", sufixo: "reais por habitante no ano" },
+  "homicidio-por-100mil": { campo: "por_100mil", rotulo: "Homicídio por 100 mil hab", sufixo: "vítimas por 100 mil habitantes" },
   "ouvidoria-por-orgao": { campo: "tempo_medio", rotulo: "Ouvidoria por órgão", sufixo: "dias até responder" },
 };
 

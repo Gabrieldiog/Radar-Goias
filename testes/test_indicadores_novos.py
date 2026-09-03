@@ -156,3 +156,52 @@ def test_sem_exercicio_usa_o_mais_recente(conn):
         ],
     )
     assert float(indicadores.despesa_per_capita(conn, "saude")[0]["empenhado"]) == 999.0
+
+
+# Verifica a taxa por 100 mil habitantes, somando os meses do ano.
+def test_ocorrencias_por_100mil(conn):
+    from radar.fontes.sinesp import Ocorrencia
+
+    banco.grava_ocorrencias(
+        conn,
+        [
+            Ocorrencia("5208707", 2026, 1, "Homicídio doloso", "Estadual", 10),
+            Ocorrencia("5208707", 2026, 2, "Homicídio doloso", "Estadual", 5),
+        ],
+    )
+    linha = indicadores.ocorrencias_por_100mil(conn, "Homicídio doloso")[0]
+    assert linha["vitimas"] == 15
+    assert linha["por_100mil"] == pytest.approx(1.0, abs=0.01)
+
+
+# Verifica que evento diferente não é somado junto.
+def test_cada_evento_e_separado(conn):
+    from radar.fontes.sinesp import Ocorrencia
+
+    banco.grava_ocorrencias(
+        conn,
+        [
+            Ocorrencia("5208707", 2026, 1, "Homicídio doloso", "Estadual", 10),
+            Ocorrencia("5208707", 2026, 1, "Suicídio", "Estadual", 40),
+        ],
+    )
+    assert indicadores.ocorrencias_por_100mil(conn, "Suicídio")[0]["vitimas"] == 40
+
+
+# Verifica que abrangências diferentes não são somadas. Trânsito aparece duas
+# vezes, uma pela polícia estadual e outra pela federal, e somar mistura fontes.
+def test_abrangencias_nao_se_somam(conn):
+    from radar.fontes.sinesp import Ocorrencia
+
+    banco.grava_ocorrencias(
+        conn,
+        [
+            Ocorrencia("5208707", 2026, 1, "Mortes no trânsito", "Estadual", 30),
+            Ocorrencia("5208707", 2026, 1, "Mortes no trânsito", "Polícia Rodoviária Federal", 12),
+        ],
+    )
+    r = indicadores.ocorrencias_por_100mil(conn, "Mortes no trânsito")
+    assert {l["abrangencia"]: l["vitimas"] for l in r} == {
+        "Estadual": 30,
+        "Polícia Rodoviária Federal": 12,
+    }

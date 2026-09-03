@@ -293,7 +293,7 @@ Suba um PostgreSQL, crie o ambiente virtual com `python3 -m venv .venv` e instal
 
 Carregue os dados com `.venv/bin/python -m radar` e suba a API com `RADAR_CHAVES=demo .venv/bin/uvicorn --factory radar.api:cria_app`.
 
-As contas municipais do Tesouro ficam num comando à parte, `.venv/bin/python -m radar financas`, porque são 246 requisições a uma por segundo e levam alguns minutos. Como o dado é anual, não faz sentido pagar esse tempo na carga de todo dia.
+Duas fontes pesadas ficam em comandos à parte, porque são lentas e o dado muda pouco. As contas municipais do Tesouro saem com `.venv/bin/python -m radar financas`, que leva alguns minutos porque são 246 requisições a uma por segundo. As ocorrências criminais saem com `.venv/bin/python -m radar seguranca`, que baixa uma planilha de 13 MB cuja aba interna passa de 200 MB descomprimidos, e por isso é lida em fluxo.
 
 A variável `RADAR_BANCO_URL` aponta para o banco, e é a única diferença entre rodar local e rodar publicado.
 

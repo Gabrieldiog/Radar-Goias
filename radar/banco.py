@@ -137,3 +137,15 @@ def grava_ocorrencias(conn, linhas, coleta_id=None) -> int:
         linhas,
     )
     return len(linhas)
+
+
+def grava_matriculas(conn, linhas, coleta_id=None) -> int:
+    linhas = [(*m, coleta_id) for m in linhas]
+    conn.cursor().executemany(
+        "insert into matricula (codigo_ibge, ano, dependencia, escolas, alunos, coleta_id)"
+        " values (%s, %s, %s, %s, %s, %s)"
+        " on conflict (codigo_ibge, ano, dependencia) do update set"
+        " escolas = excluded.escolas, alunos = excluded.alunos, coleta_id = excluded.coleta_id",
+        linhas,
+    )
+    return len(linhas)

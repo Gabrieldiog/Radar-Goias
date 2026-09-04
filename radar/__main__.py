@@ -13,6 +13,12 @@ def main() -> int:
         for chave, valor in resumo.items():
             print(f"{chave}: {valor}")
         return 0
+    if len(sys.argv) > 1 and sys.argv[1] == "educacao":
+        with banco.conecta() as conn:
+            resumo = carga.executa_educacao(conn, Cliente())
+        for chave, valor in resumo.items():
+            print(f"{chave}: {valor}")
+        return 0
     if len(sys.argv) > 1 and sys.argv[1] == "financas":
         with banco.conecta() as conn:
             resumo = carga.executa_financas(conn, Cliente())

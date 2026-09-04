@@ -92,3 +92,53 @@ Essa fonte é lenta: o Tesouro exige um pedido por município, e respeitamos o l
 A armadilha do dia foi de leitura. O Tesouro coloca função e subfunção no mesmo campo, então aparece "12 - Educação" e logo abaixo "12.365 - Educação Infantil", "12.366" e "12.367". Quem casar por pedaço do nome conta educação quatro vezes. Nosso código já casava exato, mas o teste não provava isso, e a mutação passou incólume. Reescrevemos o teste para exigir o valor certo, e agora ele pega.
 
 Antes de começar o dia, juntamos os cinco branches acumulados na main, que já estava difícil de acompanhar.
+
+## Dia 11, 20 de agosto de 2026
+
+O eixo de segurança entrou, e ele era o mais difícil. A fonte estadual não serve, como a pesquisa já tinha mostrado, então usamos a base nacional do Ministério da Justiça. São 31 tipos de ocorrência publicados, mas só 11 vêm com município; os outros existem apenas no total do estado, e isso precisa ser dito no painel para ninguém achar que esquecemos o crime patrimonial.
+
+A planilha tem 13 MB compactada e mais de 200 MB por dentro, então é lida em fluxo, uma linha por vez. Carregar Goiás inteiro leva 49 segundos.
+
+O resultado tem um número que vale a apresentação: 138 dos 246 municípios não registraram nenhum homicídio nos sete meses de 2026. A própria secretaria de segurança cita esse tipo de dado nos comunicados dela, mas nunca publica a planilha que permitiria conferir. Agora dá para conferir.
+
+Uma ressalva estatística que precisa acompanhar esse indicador: cidade pequena com duas vítimas aparece com taxa altíssima. Não é erro de conta, é o denominador pequeno, e o painel precisa avisar.
+
+Também aprendemos que o tipo dos campos muda de um ano para o outro na mesma fonte: a pesquisa viu os campos de sexo como texto em 2025, e em 2026 eles vêm como número.
+
+São sete indicadores cobrindo quatro dos cinco eixos. Falta educação.
+
+## Dia 12, 21 de agosto de 2026
+
+O painel deixou de ser um mapa com dois botões. Agora ele responde três perguntas: onde está, uma coisa explica a outra, e como mudou. Os sete indicadores aparecem agrupados pelos quatro eixos, e cada um traz uma frase de destaque calculada do próprio dado, não escrita à mão. Trocar de indicador troca a frase, e é ela que diz, por exemplo, que 223 dos 246 municípios não têm nenhum leito da rede estadual.
+
+A API ganhou a série histórica de dengue, dezessete anos, com filtro por município. Com ela dá para ver que 2024 teve 437 mil casos no estado, 12,6 vezes o ano mais brando da série, e que 2026 já está em 157 mil com o ano pela metade.
+
+Os dois gráficos novos foram refeitos no mesmo dia, porque a primeira versão não se explicava sozinha. A série era uma linha, que obriga o leitor a medir altura contra o eixo, e virou barra com o número escrito em cima de cada ano. O cruzamento era uma nuvem de 246 pontos, que não responde nada a quem olha, e virou cinco grupos de 49 municípios ordenados pelo primeiro indicador, com o segundo na altura da barra.
+
+Dois erros apareceram quando rodamos as trinta combinações possíveis contra o banco em vez de olhar só uma. A frase que resume o cruzamento comparava apenas as pontas, então anunciava que uma coisa acompanha a outra num desenho que subia e descia no meio. Agora ela também conta quantos degraus sobem. E qualquer cruzamento com leitos formava grupos de quatro cidades, porque leitos só existe em 23 municípios, então abaixo de cinquenta ela avisa isso em vez de fingir que achou padrão.
+
+Trocamos média por mediana nas barras pelo mesmo motivo que já tinha aparecido no eixo de segurança: uma cidade de dois mil habitantes com número fora da curva desloca a média do grupo inteiro.
+
+## Dia 13, 22 de agosto de 2026
+
+O eixo que faltava começou pelo denominador. Antes de saber se dinheiro vira aprendizagem, é preciso saber quantos alunos existem, e isso mora no Censo Escolar do INEP. O arquivo é um ZIP de 33 MB com um CSV de 426 colunas e 218 MB por dentro, então é lido em fluxo como a planilha do SINESP. Goiás inteiro sai em oito segundos: 4.746 escolas em atividade, nos 246 municípios, com 1.550.149 matrículas.
+
+A decisão que muda o resultado é separar por rede. O gasto que o município declara ao Tesouro é o gasto dele, então o denominador certo é o aluno da rede municipal, que são 703.735, e não o total do território. Dividir pelo total daria ao município a conta de aluno que é do estado, do governo federal ou da escola particular, e faria todo município parecer gastar menos da metade do que gasta.
+
+Três armadilhas apareceram, e as três já estavam previstas na pesquisa de fontes. O arquivo é LATIN-1 mas o cabeçalho é ASCII puro, o que faz o programa parecer certo até chegar num nome com acento. Existem três contagens diferentes de escola no mesmo arquivo, e só a de escolas em atividade serve como denominador, senão entram 280 escolas paralisadas ou extintas. E o servidor do INEP derruba cerca de uma conexão em dez, o que aconteceu logo na primeira tentativa de hoje, então o download ganhou retry com espera crescente.
+
+Um número que não esperávamos: Goiânia tem mais aluno na rede privada, 111.390, do que na rede municipal, 102.505. E enquanto todos os 246 municípios têm rede municipal e estadual, só 119 têm alguma escola particular e 25 têm escola federal.
+
+Quebramos o código de propósito cinco vezes para conferir os testes, e as cinco foram pegas.
+
+## Dia 14, 22 de agosto de 2026
+
+O quinto eixo fechou. Com a matrícula de ontem servindo de denominador, o Radar passou a calcular quanto cada município gasta por aluno da rede municipal, cruzando a despesa que ele declara ao Tesouro com o censo do INEP. São 244 municípios, dos 246, porque dois não entregaram a declaração de educação.
+
+A mediana é de 16.996 reais por aluno no ano, e a distância entre as pontas é menor do que parecia: Aloândia gasta 43.103 e Brazabrantes 7.480, cinco vezes e oito décimos. Não é o caso de denominador pequeno que aparece nos indicadores por habitante, porque Goiatuba, com 3.223 alunos, está quase no topo.
+
+O resultado carrega os dois anos que o produziram, o exercício da despesa e o ano do censo, porque eles não coincidem: a despesa é de 2025 e o censo é de 2024. Número que junta duas datas precisa dizer quais são, senão vira comparação escondida.
+
+O despacho da API precisou de cuidado. Já existia gasto em educação por habitante, e o novo é gasto em educação por aluno. Os dois começam igual, e a regra que separava indicador por prefixo mandaria o novo para a rota antiga, devolvendo o número errado com status 200. Escrevemos o teste que prova a separação antes de confiar nela.
+
+Cinco mutações, e três sobreviveram na primeira rodada. Duas eram falha de teste de verdade. A que tirava o filtro de rede passou porque o teste olhava só a primeira linha do resultado, e a linha certa continuava em primeiro; agora ele exige que exista uma linha só. A que trocava o censo mais recente pelo mais antigo passou porque o teste tinha um ano só cadastrado, exatamente o erro que já tínhamos cometido com a população no dia 4; agora ele cadastra dois anos. A terceira era mutação equivalente, sem efeito, e a rodada seguinte confirmou isso.

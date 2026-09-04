@@ -127,3 +127,84 @@ def despesa_per_capita(
         ).fetchone()[0]
     with conn.cursor(row_factory=dict_row) as cur:
         return cur.execute(DESPESA_PER_CAPITA, (base, funcao, exercicio)).fetchall()
+
+
+# a abrangência entra no agrupamento porque o mesmo evento aparece medido por
+# forças diferentes, e somar as duas contaria a mesma morte duas vezes
+OCORRENCIAS_POR_100MIL = """
+with pop as (
+    select distinct on (codigo_ibge) codigo_ibge, ano, habitantes, base
+    from populacao where base = %s order by codigo_ibge, ano desc
+)
+select o.codigo_ibge, m.nome, o.evento, o.abrangencia, o.ano,
+       sum(o.vitimas)::int as vitimas,
+       p.habitantes, p.ano as ano_populacao, p.base as base_populacional,
+       round(sum(o.vitimas) * 100000.0 / p.habitantes, 2)::float8 as por_100mil
+from ocorrencia o
+join municipio m using (codigo_ibge)
+join pop p using (codigo_ibge)
+where o.evento = %s and o.ano = %s
+group by o.codigo_ibge, m.nome, o.evento, o.abrangencia, o.ano,
+         p.habitantes, p.ano, p.base
+order by por_100mil desc
+"""
+
+
+def ocorrencias_por_100mil(
+    conn, evento: str, ano: int | None = None, base: str = "estimativa"
+) -> list[dict]:
+    if ano is None:
+        ano = conn.execute(
+            "select max(ano) from ocorrencia where evento = %s", (evento,)
+        ).fetchone()[0]
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(OCORRENCIAS_POR_100MIL, (base, evento, ano)).fetchall()
+
+
+SERIE_DENGUE = """
+select ano, sum(casos)::int as casos, count(*)::int as municipios
+from caso_dengue
+where (%s::text is null or codigo_ibge = %s::text)
+group by ano
+order by ano
+"""
+
+
+def serie_dengue(conn, codigo_ibge: str | None = None) -> list[dict]:
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(SERIE_DENGUE, (codigo_ibge, codigo_ibge)).fetchall()
+
+
+# o denominador é o aluno da rede municipal, não o total do território: o gasto
+# declarado ao Tesouro é do município, e dividir pelo total daria a ele a conta
+# do aluno que é do estado, do governo federal ou da escola particular
+GASTO_POR_ALUNO = """
+with pop as (
+    select distinct on (codigo_ibge) codigo_ibge, ano, habitantes, base
+    from populacao where base = %s order by codigo_ibge, ano desc
+)
+select d.codigo_ibge, m.nome, d.exercicio, d.empenhado,
+       t.ano as ano_censo, t.alunos, t.escolas,
+       p.habitantes, p.ano as ano_populacao, p.base as base_populacional,
+       round(d.empenhado / t.alunos, 2)::float8 as por_aluno
+from despesa_funcao d
+join matricula t using (codigo_ibge)
+join municipio m using (codigo_ibge)
+join pop p using (codigo_ibge)
+where d.funcao = 'educacao' and d.exercicio = %s
+  and t.dependencia = 'municipal' and t.ano = %s
+order by por_aluno desc
+"""
+
+
+def gasto_por_aluno(
+    conn, exercicio: int | None = None, ano_censo: int | None = None, base: str = "estimativa"
+) -> list[dict]:
+    if exercicio is None:
+        exercicio = conn.execute(
+            "select max(exercicio) from despesa_funcao where funcao = 'educacao'"
+        ).fetchone()[0]
+    if ano_censo is None:
+        ano_censo = conn.execute("select max(ano) from matricula").fetchone()[0]
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(GASTO_POR_ALUNO, (base, exercicio, ano_censo)).fetchall()

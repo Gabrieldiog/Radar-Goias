@@ -49,6 +49,18 @@ CATALOGO = {
         "dimensao": "municipio",
         "fontes": ["apidatalake.tesouro.gov.br", "servicodados.ibge.gov.br"],
     },
+    "gasto-educacao-por-aluno": {
+        "id": "gasto-educacao-por-aluno",
+        "nome": "Gasto municipal em educação por aluno da rede municipal",
+        "unidade": "reais por aluno no ano",
+        "formula": "despesa empenhada na função educação / matrículas da rede municipal",
+        "dimensao": "municipio",
+        "fontes": [
+            "apidatalake.tesouro.gov.br",
+            "download.inep.gov.br",
+            "servicodados.ibge.gov.br",
+        ],
+    },
     "gasto-educacao-por-habitante": {
         "id": "gasto-educacao-por-habitante",
         "nome": "Gasto municipal em educação por habitante",
@@ -56,6 +68,14 @@ CATALOGO = {
         "formula": "despesa empenhada na função educação / habitantes",
         "dimensao": "municipio",
         "fontes": ["apidatalake.tesouro.gov.br", "servicodados.ibge.gov.br"],
+    },
+    "homicidio-por-100mil": {
+        "id": "homicidio-por-100mil",
+        "nome": "Homicídio doloso por 100 mil habitantes",
+        "unidade": "vítimas por 100 mil habitantes no ano",
+        "formula": "vítimas de homicídio doloso no ano / habitantes * 100000",
+        "dimensao": "municipio",
+        "fontes": ["www.gov.br/mj", "servicodados.ibge.gov.br"],
     },
     "ouvidoria-por-orgao": {
         "id": "ouvidoria-por-orgao",
@@ -92,7 +112,9 @@ CAMPO = {
     "ubs-por-habitante": "por_10mil",
     "gasto-saude-por-habitante": "por_habitante",
     "gasto-educacao-por-habitante": "por_habitante",
+    "gasto-educacao-por-aluno": "por_aluno",
     "ouvidoria-por-orgao": "tempo_medio",
+    "homicidio-por-100mil": "por_100mil",
 }
 
 
@@ -101,8 +123,12 @@ def _linhas(conn, indicador_id, ano=None, prazo=30):
         return indicadores.leitos_por_100mil(conn)
     if indicador_id == "ubs-por-habitante":
         return indicadores.ubs_por_10mil(conn)
+    if indicador_id == "gasto-educacao-por-aluno":
+        return indicadores.gasto_por_aluno(conn)
     if indicador_id.startswith("gasto-"):
         return indicadores.despesa_per_capita(conn, indicador_id.split("-")[1])
+    if indicador_id == "homicidio-por-100mil":
+        return indicadores.ocorrencias_por_100mil(conn, "Homicídio doloso", ano)
     if indicador_id == "ouvidoria-por-orgao":
         return indicadores.ouvidoria_por_orgao(conn, ano, prazo)
     return indicadores.incidencia_dengue(conn, ano or 2025)
@@ -159,6 +185,15 @@ def cria_app(limite: str = "60/minute") -> FastAPI:
         return JSONResponse(
             malha.geojson(), headers={"cache-control": "public, max-age=86400"}
         )
+
+    # a série alimenta o gráfico de evolução; sem município vem o estado inteiro
+    @app.get("/v1/series/dengue")
+    def serie_dengue(
+        request: Request, municipio: str | None = None, chave: str = Depends(exige_chave)
+    ):
+        with banco.conecta() as conn:
+            linhas = indicadores.serie_dengue(conn, municipio)
+        return {"dados": linhas, "total": len(linhas)}
 
     @app.get("/v1/indicadores")
     def catalogo(request: Request, chave: str = Depends(exige_chave)):

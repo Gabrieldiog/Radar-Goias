@@ -10,7 +10,7 @@ pytestmark = pytest.mark.skipif(not banco.disponivel(), reason="sem banco; suba 
 def conn():
     with banco.conecta() as c:
         banco.aplica_esquema(c)
-        c.execute("truncate populacao, municipio restart identity cascade")
+        c.execute("truncate populacao, matricula, municipio restart identity cascade")
         yield c
         c.rollback()
 
@@ -56,3 +56,19 @@ def test_recarregar_populacao_atualiza_em_vez_de_duplicar(conn):
     for valor in (1500000, 1503256):
         banco.grava_populacao(conn, [Populacao("5208707", 2025, valor, "estimativa")])
     assert conn.execute("select habitantes from populacao").fetchall() == [(1503256,)]
+
+
+def test_matricula_atualiza_em_vez_de_duplicar(conn):
+    banco.carrega_municipios(conn)
+    banco.grava_matriculas(conn, [("5208707", 2024, "municipal", 306, 102505)])
+    banco.grava_matriculas(conn, [("5208707", 2024, "municipal", 306, 102600)])
+    assert conn.execute("select count(*), max(alunos) from matricula").fetchone() == (1, 102600)
+
+
+def test_redes_do_mesmo_municipio_convivem(conn):
+    banco.carrega_municipios(conn)
+    banco.grava_matriculas(
+        conn,
+        [("5208707", 2024, "municipal", 306, 102505), ("5208707", 2024, "estadual", 105, 62277)],
+    )
+    assert conn.execute("select count(*) from matricula").fetchone()[0] == 2

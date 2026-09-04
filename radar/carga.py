@@ -1,7 +1,9 @@
+import tempfile
+from pathlib import Path
 from urllib.parse import quote
 
 from radar import banco, municipios
-from radar.fontes import ckan_go, ibge, ms_cnes, siconfi
+from radar.fontes import ckan_go, ibge, inep, ms_cnes, siconfi, sinesp
 
 
 def executa(conn, cliente) -> dict:
@@ -78,3 +80,55 @@ def executa_financas(conn, cliente, exercicio: int = 2025) -> dict:
         banco.grava_despesas(conn, despesas, coleta)
         linhas += despesas
     return {"despesas": len(linhas), "municipios_sem_entrega": len(sem_entrega)}
+
+
+def executa_seguranca(conn, cliente, ano: int = 2026, caminho=None) -> dict:
+    """Baixa a planilha do SINESP, se preciso, e grava as ocorrências de Goiás.
+
+    O arquivo tem 13 MB e a planilha interna passa de 200 MB descomprimidos,
+    então fica num comando separado e é lido em fluxo.
+    """
+    banco.aplica_esquema(conn)
+    banco.carrega_municipios(conn)
+    if caminho is None:
+        caminho = Path(tempfile.gettempdir()) / f"sinesp{ano}.xlsx"
+        if not caminho.exists():
+            resposta = cliente.arquivo(sinesp.url_planilha(ano), caminho)
+            coleta = banco.grava_coleta(
+                conn, "sinesp", resposta.url, resposta.status, resposta.bytes
+            )
+        else:
+            coleta = banco.grava_coleta(conn, "sinesp", str(caminho), 200, caminho.stat().st_size)
+    else:
+        coleta = banco.grava_coleta(conn, "sinesp", str(caminho), 200, Path(caminho).stat().st_size)
+    ocorrencias = sinesp.le_planilha(caminho)
+    return {
+        "ocorrencias": banco.grava_ocorrencias(conn, ocorrencias, coleta),
+        "eventos": len({o.evento for o in ocorrencias}),
+    }
+
+
+def executa_educacao(conn, cliente, ano: int = 2024, caminho=None) -> dict:
+    """Baixa o Censo Escolar do INEP, se preciso, e grava as matrículas de Goiás.
+
+    Fica num comando separado porque o ZIP tem 33 MB e o CSV de dentro passa de
+    200 MB, e porque o censo sai uma vez por ano.
+    """
+    banco.aplica_esquema(conn)
+    banco.carrega_municipios(conn)
+    if caminho is None:
+        caminho = Path(tempfile.gettempdir()) / f"censo{ano}.zip"
+        if not caminho.exists():
+            resposta = cliente.arquivo(inep.url_censo(ano), caminho, tentativas=4)
+            coleta = banco.grava_coleta(
+                conn, "inep", resposta.url, resposta.status, resposta.bytes
+            )
+        else:
+            coleta = banco.grava_coleta(conn, "inep", str(caminho), 200, caminho.stat().st_size)
+    else:
+        coleta = banco.grava_coleta(conn, "inep", str(caminho), 200, Path(caminho).stat().st_size)
+    matriculas = inep.le_censo(caminho)
+    return {
+        "matriculas": banco.grava_matriculas(conn, matriculas, coleta),
+        "alunos": sum(m.alunos for m in matriculas),
+    }

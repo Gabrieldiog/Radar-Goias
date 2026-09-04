@@ -87,3 +87,39 @@ def test_timeout_pode_ser_esticado_por_fonte_lenta(relogio):
 
     cliente(relogio, espia).json("https://exemplo.gov.br/a", timeout=120.0)
     assert vistos == [120.0]
+
+
+class Quedas:
+    """Derruba a conexão as primeiras vezes e responde na seguinte, como o INEP."""
+
+    def __init__(self, quantas):
+        self.restantes = quantas
+        self.chamadas = 0
+
+    def __call__(self, req):
+        self.chamadas += 1
+        if self.restantes:
+            self.restantes -= 1
+            raise httpx.ConnectError("connection reset by peer")
+        return httpx.Response(200, content=b"conteudo")
+
+
+def test_arquivo_repete_quando_a_conexao_cai(relogio, tmp_path):
+    queda = Quedas(2)
+    c = cliente(relogio, queda)
+    r = c.arquivo("https://download.inep.gov.br/a.zip", tmp_path / "a.zip", tentativas=4)
+    assert (r.status, r.bytes, queda.chamadas) == (200, 8, 3)
+
+
+def test_arquivo_desiste_depois_da_ultima_tentativa(relogio, tmp_path):
+    queda = Quedas(9)
+    with pytest.raises(httpx.ConnectError):
+        cliente(relogio, queda).arquivo("https://x.gov.br/a.zip", tmp_path / "a.zip", tentativas=3)
+    assert queda.chamadas == 3
+
+
+def test_arquivo_nao_repete_por_padrao(relogio, tmp_path):
+    queda = Quedas(1)
+    with pytest.raises(httpx.ConnectError):
+        cliente(relogio, queda).arquivo("https://x.gov.br/a.zip", tmp_path / "a.zip")
+    assert queda.chamadas == 1

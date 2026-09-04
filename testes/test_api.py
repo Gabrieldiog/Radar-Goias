@@ -16,7 +16,10 @@ def cliente(monkeypatch):
     monkeypatch.setenv("RADAR_CHAVES", f"{CHAVE},{OUTRA}")
     with banco.conecta() as c:
         banco.aplica_esquema(c)
-        c.execute("truncate caso_dengue, populacao, municipio, coleta restart identity cascade")
+        c.execute(
+            "truncate caso_dengue, matricula, despesa_funcao, populacao, municipio, coleta"
+            " restart identity cascade"
+        )
         banco.carrega_municipios(c)
         banco.grava_populacao(c, [Populacao("5208707", 2025, 1503256, "estimativa")])
         banco.grava_casos_dengue(c, [Caso("5208707", 2025, 38232)])
@@ -66,6 +69,8 @@ def test_catalogo_lista_o_indicador(cliente):
         "ouvidoria-por-orgao",
         "gasto-saude-por-habitante",
         "gasto-educacao-por-habitante",
+        "gasto-educacao-por-aluno",
+        "homicidio-por-100mil",
     }
 
 
@@ -148,3 +153,24 @@ def test_ficha_cobre_todos_os_indicadores_por_municipio(cliente):
     esperados = {i["id"] for i in catalogo if i["dimensao"] == "municipio"}
     ficha = cliente.get(f"/v1/municipios/5208707?chave={CHAVE}").json()
     assert set(ficha["indicadores"]) == esperados
+
+
+# Verifica que a série de dengue responde, para o gráfico de evolução.
+def test_serie_de_dengue_responde(cliente):
+    r = cliente.get(f"/v1/series/dengue?chave={CHAVE}")
+    assert r.status_code == 200
+    assert r.json()["dados"][0]["ano"] == 2025
+
+
+# Verifica que gasto por aluno não cai na rota do gasto por habitante. Os dois
+# começam com "gasto-educacao" e a ordem do despacho é o que os separa.
+def test_gasto_por_aluno_nao_e_confundido_com_por_habitante(cliente):
+    with banco.conecta() as c:
+        banco.grava_despesas(c, [("5208707", 2025, "educacao", 1000000, 1000000)])
+        banco.grava_matriculas(c, [("5208707", 2024, "municipal", 3, 100)])
+    r = cliente.get(f"/v1/indicadores/gasto-educacao-por-aluno?chave={CHAVE}")
+    assert r.status_code == 200
+    linha = r.json()["dados"][0]
+    assert linha["por_aluno"] == pytest.approx(10000.0)
+    assert "por_habitante" not in linha
+    assert "download.inep.gov.br" in r.json()["meta"]["fontes"]

@@ -12,7 +12,7 @@ def conn():
     with banco.conecta() as c:
         banco.aplica_esquema(c)
         c.execute(
-            "truncate manifestacao, ubs, leito, caso_dengue, populacao, municipio, coleta"
+            "truncate manifestacao, ubs, leito, caso_dengue, matricula, despesa_funcao, populacao, municipio, coleta"
             " restart identity cascade"
         )
         banco.carrega_municipios(c)
@@ -156,3 +156,125 @@ def test_sem_exercicio_usa_o_mais_recente(conn):
         ],
     )
     assert float(indicadores.despesa_per_capita(conn, "saude")[0]["empenhado"]) == 999.0
+
+
+# Verifica a taxa por 100 mil habitantes, somando os meses do ano.
+def test_ocorrencias_por_100mil(conn):
+    from radar.fontes.sinesp import Ocorrencia
+
+    banco.grava_ocorrencias(
+        conn,
+        [
+            Ocorrencia("5208707", 2026, 1, "Homicídio doloso", "Estadual", 10),
+            Ocorrencia("5208707", 2026, 2, "Homicídio doloso", "Estadual", 5),
+        ],
+    )
+    linha = indicadores.ocorrencias_por_100mil(conn, "Homicídio doloso")[0]
+    assert linha["vitimas"] == 15
+    assert linha["por_100mil"] == pytest.approx(1.0, abs=0.01)
+
+
+# Verifica que evento diferente não é somado junto.
+def test_cada_evento_e_separado(conn):
+    from radar.fontes.sinesp import Ocorrencia
+
+    banco.grava_ocorrencias(
+        conn,
+        [
+            Ocorrencia("5208707", 2026, 1, "Homicídio doloso", "Estadual", 10),
+            Ocorrencia("5208707", 2026, 1, "Suicídio", "Estadual", 40),
+        ],
+    )
+    assert indicadores.ocorrencias_por_100mil(conn, "Suicídio")[0]["vitimas"] == 40
+
+
+# Verifica que abrangências diferentes não são somadas. Trânsito aparece duas
+# vezes, uma pela polícia estadual e outra pela federal, e somar mistura fontes.
+def test_abrangencias_nao_se_somam(conn):
+    from radar.fontes.sinesp import Ocorrencia
+
+    banco.grava_ocorrencias(
+        conn,
+        [
+            Ocorrencia("5208707", 2026, 1, "Mortes no trânsito", "Estadual", 30),
+            Ocorrencia("5208707", 2026, 1, "Mortes no trânsito", "Polícia Rodoviária Federal", 12),
+        ],
+    )
+    r = indicadores.ocorrencias_por_100mil(conn, "Mortes no trânsito")
+    assert {l["abrangencia"]: l["vitimas"] for l in r} == {
+        "Estadual": 30,
+        "Polícia Rodoviária Federal": 12,
+    }
+
+
+# Verifica a série de dengue por ano, que alimenta o gráfico de evolução.
+def test_serie_de_dengue_por_ano(conn):
+    from radar.fontes.ckan_go import Caso
+
+    banco.grava_casos_dengue(
+        conn,
+        [
+            Caso("5208707", 2024, 40000),
+            Caso("5208707", 2025, 38000),
+            Caso("5200050", 2024, 500),
+        ],
+    )
+    serie = indicadores.serie_dengue(conn)
+    assert [l["ano"] for l in serie] == [2024, 2025]
+    assert serie[0]["casos"] == 40500
+    assert serie[0]["municipios"] == 2
+
+
+# Verifica que dá para pedir a série de um município só.
+def test_serie_de_um_municipio(conn):
+    from radar.fontes.ckan_go import Caso
+
+    banco.grava_casos_dengue(
+        conn, [Caso("5208707", 2024, 40000), Caso("5200050", 2024, 500)]
+    )
+    serie = indicadores.serie_dengue(conn, "5208707")
+    assert serie[0]["casos"] == 40000
+
+
+def educacao(conn, empenhado, alunos, dependencia="municipal", escolas=1):
+    banco.grava_despesas(conn, [("5208707", 2025, "educacao", empenhado, empenhado)])
+    banco.grava_matriculas(conn, [("5208707", 2024, dependencia, escolas, alunos)])
+
+
+# Verifica a conta: empenhado dividido por aluno da rede municipal.
+def test_gasto_por_aluno_da_rede_municipal(conn):
+    educacao(conn, 1000000, 100)
+    assert indicadores.gasto_por_aluno(conn)[0]["por_aluno"] == pytest.approx(10000.0)
+
+
+# Verifica que o aluno da rede estadual não entra no denominador do município.
+# Se entrasse, o município pareceria gastar menos da metade do que gasta.
+def test_aluno_de_outra_rede_nao_entra_no_denominador(conn):
+    educacao(conn, 1000000, 100)
+    banco.grava_matriculas(conn, [("5208707", 2024, "estadual", 9, 900)])
+    linhas = indicadores.gasto_por_aluno(conn)
+    assert len(linhas) == 1
+    assert linhas[0]["por_aluno"] == pytest.approx(10000.0)
+
+
+# Verifica que o resultado declara de que ano é cada metade do cruzamento, já
+# que a despesa é de um exercício e a matrícula é de outro.
+def test_declara_o_exercicio_e_o_ano_do_censo(conn):
+    educacao(conn, 500000, 50)
+    linha = indicadores.gasto_por_aluno(conn)[0]
+    assert (linha["exercicio"], linha["ano_censo"]) == (2025, 2024)
+
+
+# Verifica que município com despesa mas sem matrícula fica de fora, porque não
+# dá para dividir por um denominador que não existe.
+def test_municipio_sem_matricula_fica_de_fora(conn):
+    banco.grava_despesas(conn, [("5208707", 2025, "educacao", 900000, 900000)])
+    assert indicadores.gasto_por_aluno(conn) == []
+
+
+# Verifica que o censo mais recente é o que vale, e não o primeiro que existir.
+def test_usa_o_censo_mais_recente(conn):
+    educacao(conn, 1000000, 500)
+    banco.grava_matriculas(conn, [("5208707", 2023, "municipal", 1, 100)])
+    linha = indicadores.gasto_por_aluno(conn)[0]
+    assert (linha["ano_censo"], linha["alunos"]) == (2024, 500)

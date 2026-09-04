@@ -256,6 +256,10 @@ O robots.txt do Tribunal de Contas dos Municípios desaconselha coleta automatiz
 - [x] Cálculo dos primeiros indicadores
 - [x] API REST com autenticação e limite de requisições
 - [x] Painel web com o mapa dos 246 municípios
+- [x] Painel com as três visões: mapa, cruzamento entre indicadores e série histórica
+- [x] Eixo educação com o INEP, matrícula como denominador e gasto por aluno
+- [ ] IDEB por etapa e rede, cruzado com o gasto por aluno
+- [ ] Publicar o painel na Vercel e a API com o banco na VPS
 
 A ordem de ataque começa pelo portal de Goiás com o IBGE junto, porque é onde a razão entre esforço e resultado é melhor: SQL aberto, dado atualizado diariamente e chave de município limpa. Com essas duas fontes já saem indicadores de saúde e de ouvidoria de verdade.
 
@@ -293,7 +297,7 @@ Suba um PostgreSQL, crie o ambiente virtual com `python3 -m venv .venv` e instal
 
 Carregue os dados com `.venv/bin/python -m radar` e suba a API com `RADAR_CHAVES=demo .venv/bin/uvicorn --factory radar.api:cria_app`.
 
-As contas municipais do Tesouro ficam num comando à parte, `.venv/bin/python -m radar financas`, porque são 246 requisições a uma por segundo e levam alguns minutos. Como o dado é anual, não faz sentido pagar esse tempo na carga de todo dia.
+Duas fontes pesadas ficam em comandos à parte, porque são lentas e o dado muda pouco. As contas municipais do Tesouro saem com `.venv/bin/python -m radar financas`, que leva alguns minutos porque são 246 requisições a uma por segundo. As ocorrências criminais saem com `.venv/bin/python -m radar seguranca`, que baixa uma planilha de 13 MB cuja aba interna passa de 200 MB descomprimidos, e por isso é lida em fluxo.
 
 A variável `RADAR_BANCO_URL` aponta para o banco, e é a única diferença entre rodar local e rodar publicado.
 

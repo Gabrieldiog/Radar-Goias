@@ -51,6 +51,10 @@ npm-debug.log*
 pnpm-debug.log*
 yarn-error.log*
 
+# --- Arquivos que o next dev escreve sozinho ---
+CLAUDE.md
+AGENTS.md
+
 # --- Sistema operacional / editor ---
 .DS_Store
 Thumbs.db

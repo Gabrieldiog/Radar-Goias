@@ -69,3 +69,24 @@ create table if not exists despesa_funcao (
     coleta_id   bigint  references coleta,
     primary key (codigo_ibge, exercicio, funcao)
 );
+
+create table if not exists ocorrencia (
+    codigo_ibge text    not null references municipio,
+    ano         integer not null,
+    mes         integer not null check (mes between 1 and 12),
+    evento      text    not null,
+    abrangencia text    not null,
+    vitimas     integer not null check (vitimas >= 0),
+    coleta_id   bigint  references coleta,
+    primary key (codigo_ibge, ano, mes, evento, abrangencia)
+);
+
+create table if not exists matricula (
+    codigo_ibge text    not null references municipio,
+    ano         integer not null,
+    dependencia text    not null check (dependencia in ('federal', 'estadual', 'municipal', 'privada')),
+    escolas     integer not null check (escolas > 0),
+    alunos      integer not null check (alunos >= 0),
+    coleta_id   bigint  references coleta,
+    primary key (codigo_ibge, ano, dependencia)
+);

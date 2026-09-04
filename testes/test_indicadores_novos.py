@@ -12,7 +12,7 @@ def conn():
     with banco.conecta() as c:
         banco.aplica_esquema(c)
         c.execute(
-            "truncate manifestacao, ubs, leito, caso_dengue, populacao, municipio, coleta"
+            "truncate manifestacao, ubs, leito, caso_dengue, matricula, despesa_funcao, populacao, municipio, coleta"
             " restart identity cascade"
         )
         banco.carrega_municipios(c)
@@ -234,3 +234,47 @@ def test_serie_de_um_municipio(conn):
     )
     serie = indicadores.serie_dengue(conn, "5208707")
     assert serie[0]["casos"] == 40000
+
+
+def educacao(conn, empenhado, alunos, dependencia="municipal", escolas=1):
+    banco.grava_despesas(conn, [("5208707", 2025, "educacao", empenhado, empenhado)])
+    banco.grava_matriculas(conn, [("5208707", 2024, dependencia, escolas, alunos)])
+
+
+# Verifica a conta: empenhado dividido por aluno da rede municipal.
+def test_gasto_por_aluno_da_rede_municipal(conn):
+    educacao(conn, 1000000, 100)
+    assert indicadores.gasto_por_aluno(conn)[0]["por_aluno"] == pytest.approx(10000.0)
+
+
+# Verifica que o aluno da rede estadual não entra no denominador do município.
+# Se entrasse, o município pareceria gastar menos da metade do que gasta.
+def test_aluno_de_outra_rede_nao_entra_no_denominador(conn):
+    educacao(conn, 1000000, 100)
+    banco.grava_matriculas(conn, [("5208707", 2024, "estadual", 9, 900)])
+    linhas = indicadores.gasto_por_aluno(conn)
+    assert len(linhas) == 1
+    assert linhas[0]["por_aluno"] == pytest.approx(10000.0)
+
+
+# Verifica que o resultado declara de que ano é cada metade do cruzamento, já
+# que a despesa é de um exercício e a matrícula é de outro.
+def test_declara_o_exercicio_e_o_ano_do_censo(conn):
+    educacao(conn, 500000, 50)
+    linha = indicadores.gasto_por_aluno(conn)[0]
+    assert (linha["exercicio"], linha["ano_censo"]) == (2025, 2024)
+
+
+# Verifica que município com despesa mas sem matrícula fica de fora, porque não
+# dá para dividir por um denominador que não existe.
+def test_municipio_sem_matricula_fica_de_fora(conn):
+    banco.grava_despesas(conn, [("5208707", 2025, "educacao", 900000, 900000)])
+    assert indicadores.gasto_por_aluno(conn) == []
+
+
+# Verifica que o censo mais recente é o que vale, e não o primeiro que existir.
+def test_usa_o_censo_mais_recente(conn):
+    educacao(conn, 1000000, 500)
+    banco.grava_matriculas(conn, [("5208707", 2023, "municipal", 1, 100)])
+    linha = indicadores.gasto_por_aluno(conn)[0]
+    assert (linha["ano_censo"], linha["alunos"]) == (2024, 500)

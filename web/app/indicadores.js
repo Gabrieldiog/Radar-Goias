@@ -30,7 +30,7 @@ export const INDICADORES = {
     destaque: (linhas) =>
       `${linhas[0].nome} teve ${fmt(linhas[0].por_100k)} casos por 100 mil moradores, ${(
         linhas[0].por_100k / mediana(linhas, "por_100k")
-      ).toFixed(1)} vezes a mediana do estado.`,
+      ).toFixed(1).replace('.', ',')} vezes a mediana do estado.`,
   },
   "homicidio-por-100mil": {
     curto: "taxa de homicídio",
@@ -65,6 +65,20 @@ export const INDICADORES = {
         linhas[0].por_habitante / linhas[linhas.length - 1].por_habitante
       ).toFixed(0)} vezes mais por morador que ${linhas[linhas.length - 1].nome}.`,
   },
+  "gasto-educacao-por-aluno": {
+    curto: "gasto em educação por aluno",
+    eixo: "Educação",
+    campo: "por_aluno",
+    rotulo: "Gasto por aluno",
+    unidade: "reais por aluno no ano",
+    destaque: (linhas) => {
+      const alto = linhas[0];
+      const baixo = linhas[linhas.length - 1];
+      return `${alto.nome} gasta ${fmt(Math.round(alto.por_aluno))} reais por aluno da rede municipal, ${(
+        alto.por_aluno / baixo.por_aluno
+      ).toFixed(1).replace('.', ',')} vezes o que ${baixo.nome} gasta.`;
+    },
+  },
   "ouvidoria-por-orgao": {
     curto: "tempo de resposta da ouvidoria",
     eixo: "Atendimento ao cidadão",
@@ -80,7 +94,7 @@ export const INDICADORES = {
   },
 };
 
-export const EIXOS = ["Saúde", "Segurança", "Dinheiro público", "Atendimento ao cidadão"];
+export const EIXOS = ["Saúde", "Educação", "Segurança", "Dinheiro público", "Atendimento ao cidadão"];
 
 export function fmt(v) {
   return v == null ? "sem dado" : v.toLocaleString("pt-BR", { maximumFractionDigits: 1 });

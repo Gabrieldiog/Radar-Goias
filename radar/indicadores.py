@@ -173,3 +173,38 @@ order by ano
 def serie_dengue(conn, codigo_ibge: str | None = None) -> list[dict]:
     with conn.cursor(row_factory=dict_row) as cur:
         return cur.execute(SERIE_DENGUE, (codigo_ibge, codigo_ibge)).fetchall()
+
+
+# o denominador é o aluno da rede municipal, não o total do território: o gasto
+# declarado ao Tesouro é do município, e dividir pelo total daria a ele a conta
+# do aluno que é do estado, do governo federal ou da escola particular
+GASTO_POR_ALUNO = """
+with pop as (
+    select distinct on (codigo_ibge) codigo_ibge, ano, habitantes, base
+    from populacao where base = %s order by codigo_ibge, ano desc
+)
+select d.codigo_ibge, m.nome, d.exercicio, d.empenhado,
+       t.ano as ano_censo, t.alunos, t.escolas,
+       p.habitantes, p.ano as ano_populacao, p.base as base_populacional,
+       round(d.empenhado / t.alunos, 2)::float8 as por_aluno
+from despesa_funcao d
+join matricula t using (codigo_ibge)
+join municipio m using (codigo_ibge)
+join pop p using (codigo_ibge)
+where d.funcao = 'educacao' and d.exercicio = %s
+  and t.dependencia = 'municipal' and t.ano = %s
+order by por_aluno desc
+"""
+
+
+def gasto_por_aluno(
+    conn, exercicio: int | None = None, ano_censo: int | None = None, base: str = "estimativa"
+) -> list[dict]:
+    if exercicio is None:
+        exercicio = conn.execute(
+            "select max(exercicio) from despesa_funcao where funcao = 'educacao'"
+        ).fetchone()[0]
+    if ano_censo is None:
+        ano_censo = conn.execute("select max(ano) from matricula").fetchone()[0]
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(GASTO_POR_ALUNO, (base, exercicio, ano_censo)).fetchall()

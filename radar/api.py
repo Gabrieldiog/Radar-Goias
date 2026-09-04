@@ -49,6 +49,18 @@ CATALOGO = {
         "dimensao": "municipio",
         "fontes": ["apidatalake.tesouro.gov.br", "servicodados.ibge.gov.br"],
     },
+    "gasto-educacao-por-aluno": {
+        "id": "gasto-educacao-por-aluno",
+        "nome": "Gasto municipal em educação por aluno da rede municipal",
+        "unidade": "reais por aluno no ano",
+        "formula": "despesa empenhada na função educação / matrículas da rede municipal",
+        "dimensao": "municipio",
+        "fontes": [
+            "apidatalake.tesouro.gov.br",
+            "download.inep.gov.br",
+            "servicodados.ibge.gov.br",
+        ],
+    },
     "gasto-educacao-por-habitante": {
         "id": "gasto-educacao-por-habitante",
         "nome": "Gasto municipal em educação por habitante",
@@ -100,6 +112,7 @@ CAMPO = {
     "ubs-por-habitante": "por_10mil",
     "gasto-saude-por-habitante": "por_habitante",
     "gasto-educacao-por-habitante": "por_habitante",
+    "gasto-educacao-por-aluno": "por_aluno",
     "ouvidoria-por-orgao": "tempo_medio",
     "homicidio-por-100mil": "por_100mil",
 }
@@ -110,6 +123,8 @@ def _linhas(conn, indicador_id, ano=None, prazo=30):
         return indicadores.leitos_por_100mil(conn)
     if indicador_id == "ubs-por-habitante":
         return indicadores.ubs_por_10mil(conn)
+    if indicador_id == "gasto-educacao-por-aluno":
+        return indicadores.gasto_por_aluno(conn)
     if indicador_id.startswith("gasto-"):
         return indicadores.despesa_per_capita(conn, indicador_id.split("-")[1])
     if indicador_id == "homicidio-por-100mil":

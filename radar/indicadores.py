@@ -208,3 +208,55 @@ def gasto_por_aluno(
         ano_censo = conn.execute("select max(ano) from matricula").fetchone()[0]
     with conn.cursor(row_factory=dict_row) as cur:
         return cur.execute(GASTO_POR_ALUNO, (base, exercicio, ano_censo)).fetchall()
+
+
+# anos iniciais na rede municipal é o recorte que o município de fato comanda:
+# 241 dos 246 têm rede municipal aqui, contra 3 no ensino médio, que é do estado
+IDEB_POR_MUNICIPIO = """
+select i.codigo_ibge, m.nome, i.ano, i.etapa, i.rede,
+       i.ideb::float8, i.meta::float8, i.rendimento::float8, i.nota::float8,
+       case when i.meta is null then null else i.ideb >= i.meta end as bateu_meta
+from ideb i
+join municipio m using (codigo_ibge)
+where i.etapa = %s and i.rede = %s and i.ano = %s
+order by i.ideb desc
+"""
+
+
+def ideb_por_municipio(
+    conn, etapa: str = "anos_iniciais", rede: str = "municipal", ano: int | None = None
+) -> list[dict]:
+    if ano is None:
+        ano = conn.execute(
+            "select max(ano) from ideb where etapa = %s and rede = %s", (etapa, rede)
+        ).fetchone()[0]
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(IDEB_POR_MUNICIPIO, (etapa, rede, ano)).fetchall()
+
+
+# o IDEB é o produto de duas coisas, e a fonte publica as duas separadas: o
+# rendimento diz quanto se aprova e a nota diz quanto se aprende, então dá para
+# ver se o município subiu porque reprova menos ou porque ensina mais
+SERIE_IDEB = """
+select ano, etapa, rede,
+       round(avg(ideb), 2)::float8 as ideb,
+       round(avg(meta), 2)::float8 as meta,
+       round(avg(rendimento), 4)::float8 as rendimento,
+       round(avg(nota), 2)::float8 as nota,
+       count(*)::int as municipios
+from ideb
+where etapa = %s and rede = %s and (%s::text is null or codigo_ibge = %s::text)
+group by ano, etapa, rede
+order by ano
+"""
+
+
+def serie_ideb(
+    conn,
+    codigo_ibge: str | None = None,
+    etapa: str = "anos_iniciais",
+    rede: str = "municipal",
+) -> list[dict]:
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(SERIE_IDEB, (etapa, rede, codigo_ibge, codigo_ibge)).fetchall()
+

@@ -77,6 +77,16 @@ CATALOGO = {
         "dimensao": "municipio",
         "fontes": ["www.gov.br/mj", "servicodados.ibge.gov.br"],
     },
+    "ideb-anos-iniciais": {
+        "id": "ideb-anos-iniciais",
+        "nome": "IDEB dos anos iniciais na rede municipal",
+        "unidade": "nota de 0 a 10",
+        "formula": "indicador de rendimento multiplicado pela nota média padronizada",
+        "dimensao": "municipio",
+        "etapa": "anos_iniciais",
+        "rede": "municipal",
+        "fontes": ["download.inep.gov.br"],
+    },
     "ouvidoria-por-orgao": {
         "id": "ouvidoria-por-orgao",
         "nome": "Atendimento da ouvidoria por órgão",
@@ -113,6 +123,7 @@ CAMPO = {
     "gasto-saude-por-habitante": "por_habitante",
     "gasto-educacao-por-habitante": "por_habitante",
     "gasto-educacao-por-aluno": "por_aluno",
+    "ideb-anos-iniciais": "ideb",
     "ouvidoria-por-orgao": "tempo_medio",
     "homicidio-por-100mil": "por_100mil",
 }
@@ -123,6 +134,8 @@ def _linhas(conn, indicador_id, ano=None, prazo=30):
         return indicadores.leitos_por_100mil(conn)
     if indicador_id == "ubs-por-habitante":
         return indicadores.ubs_por_10mil(conn)
+    if indicador_id == "ideb-anos-iniciais":
+        return indicadores.ideb_por_municipio(conn, ano=ano)
     if indicador_id == "gasto-educacao-por-aluno":
         return indicadores.gasto_por_aluno(conn)
     if indicador_id.startswith("gasto-"):
@@ -138,6 +151,17 @@ def _do_municipio(linhas, codigo_ibge, campo):
     for l in linhas:
         if l["codigo_ibge"] == codigo_ibge:
             return l[campo]
+    return None
+
+
+# as consultas de indicador já voltam ordenadas do maior para o menor, então a
+# posição é o índice; município sem valor fica de fora da contagem, senão a
+# ausência de dado viraria último lugar
+def _ranking(linhas, codigo_ibge, campo):
+    com_valor = [l for l in linhas if l.get(campo) is not None]
+    for posicao, l in enumerate(com_valor, 1):
+        if l["codigo_ibge"] == codigo_ibge:
+            return {"posicao": posicao, "de": len(com_valor)}
     return None
 
 
@@ -172,11 +196,15 @@ def cria_app(limite: str = "60/minute") -> FastAPI:
         if not linha:
             raise HTTPException(404, f"município desconhecido: {codigo_ibge}")
         with banco.conecta() as conn:
-            linha["indicadores"] = {
-                id: _do_municipio(_linhas(conn, id), codigo_ibge, CAMPO[id])
-                for id, meta in CATALOGO.items()
-                if meta["dimensao"] == "municipio"
-            }
+            valores, posicoes = {}, {}
+            for id, meta in CATALOGO.items():
+                if meta["dimensao"] != "municipio":
+                    continue
+                linhas = _linhas(conn, id)
+                valores[id] = _do_municipio(linhas, codigo_ibge, CAMPO[id])
+                posicoes[id] = _ranking(linhas, codigo_ibge, CAMPO[id])
+        linha["indicadores"] = valores
+        linha["posicoes"] = posicoes
         return linha
 
     @app.get("/v1/malha")
@@ -194,6 +222,20 @@ def cria_app(limite: str = "60/minute") -> FastAPI:
         with banco.conecta() as conn:
             linhas = indicadores.serie_dengue(conn, municipio)
         return {"dados": linhas, "total": len(linhas)}
+
+    # a série do IDEB traz as duas metades da nota, para o painel poder mostrar
+    # se o município subiu por aprovar mais ou por aprender mais
+    @app.get("/v1/series/ideb")
+    def serie_ideb(
+        request: Request,
+        municipio: str | None = None,
+        etapa: str = "anos_iniciais",
+        rede: str = "municipal",
+        chave: str = Depends(exige_chave),
+    ):
+        with banco.conecta() as conn:
+            linhas = indicadores.serie_ideb(conn, municipio, etapa, rede)
+        return {"dados": linhas, "total": len(linhas), "fontes": ["download.inep.gov.br"]}
 
     @app.get("/v1/indicadores")
     def catalogo(request: Request, chave: str = Depends(exige_chave)):

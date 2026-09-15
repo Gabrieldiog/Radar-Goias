@@ -70,6 +70,7 @@ def test_catalogo_lista_o_indicador(cliente):
         "gasto-saude-por-habitante",
         "gasto-educacao-por-habitante",
         "gasto-educacao-por-aluno",
+        "ideb-anos-iniciais",
         "homicidio-por-100mil",
     }
 
@@ -174,3 +175,34 @@ def test_gasto_por_aluno_nao_e_confundido_com_por_habitante(cliente):
     assert linha["por_aluno"] == pytest.approx(10000.0)
     assert "por_habitante" not in linha
     assert "download.inep.gov.br" in r.json()["meta"]["fontes"]
+
+
+# Verifica que a ficha diz em que posição o município está, e de quantos.
+def test_ficha_traz_a_posicao_no_ranking(cliente):
+    with banco.conecta() as c:
+        banco.grava_casos_dengue(c, [Caso("5200050", 2025, 10)])
+        banco.grava_populacao(c, [Populacao("5200050", 2025, 10000, "estimativa")])
+    ficha = cliente.get(f"/v1/municipios/5208707?chave={CHAVE}").json()
+    assert ficha["posicoes"]["incidencia-dengue"] == {"posicao": 1, "de": 2}
+
+
+# Verifica que indicador sem valor para aquele município não vira último lugar.
+# Sem dado é diferente de estar no fim da fila.
+def test_sem_dado_nao_vira_ultima_posicao(cliente):
+    ficha = cliente.get(f"/v1/municipios/5208707?chave={CHAVE}").json()
+    assert ficha["indicadores"]["leitos-rede-estadual"] is None
+    assert ficha["posicoes"]["leitos-rede-estadual"] is None
+
+
+# Verifica direto na função: linha sem valor sai da contagem e não empurra os
+# outros para trás. O teste de ponta a ponta não pegava isso, porque o indicador
+# que eu usei lá não devolve linha com valor nulo.
+def test_ranking_ignora_linha_sem_valor():
+    linhas = [
+        {"codigo_ibge": "1", "v": 10.0},
+        {"codigo_ibge": "2", "v": None},
+        {"codigo_ibge": "3", "v": 5.0},
+    ]
+    assert api._ranking(linhas, "1", "v") == {"posicao": 1, "de": 2}
+    assert api._ranking(linhas, "3", "v") == {"posicao": 2, "de": 2}
+    assert api._ranking(linhas, "2", "v") is None

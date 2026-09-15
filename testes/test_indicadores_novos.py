@@ -12,7 +12,7 @@ def conn():
     with banco.conecta() as c:
         banco.aplica_esquema(c)
         c.execute(
-            "truncate manifestacao, ubs, leito, caso_dengue, matricula, despesa_funcao, populacao, municipio, coleta"
+            "truncate manifestacao, ubs, leito, caso_dengue, ideb, matricula, despesa_funcao, populacao, municipio, coleta"
             " restart identity cascade"
         )
         banco.carrega_municipios(c)
@@ -278,3 +278,59 @@ def test_usa_o_censo_mais_recente(conn):
     banco.grava_matriculas(conn, [("5208707", 2023, "municipal", 1, 100)])
     linha = indicadores.gasto_por_aluno(conn)[0]
     assert (linha["ano_censo"], linha["alunos"]) == (2024, 500)
+
+
+def nota(conn, codigo="5208707", ano=2025, etapa="anos_iniciais", rede="municipal",
+         ideb=6.6, meta=6.1, rendimento=0.99, valor=6.66):
+    banco.grava_ideb(conn, [(codigo, ano, etapa, rede, ideb, meta, rendimento, valor)])
+
+
+# Verifica que o recorte pedido é o que volta. Anos iniciais na rede municipal
+# é o único em que o município manda: 241 dos 246 têm rede ali.
+def test_ideb_filtra_etapa_e_rede(conn):
+    nota(conn)
+    nota(conn, etapa="ensino_medio", rede="estadual", ideb=4.9)
+    linhas = indicadores.ideb_por_municipio(conn)
+    assert len(linhas) == 1
+    assert (linhas[0]["etapa"], linhas[0]["rede"], linhas[0]["ideb"]) == (
+        "anos_iniciais", "municipal", 6.6)
+
+
+# Verifica que sem ano pedido vale o mais recente, e não o primeiro da série.
+def test_ideb_usa_o_ano_mais_recente(conn):
+    nota(conn, ano=2005, ideb=3.9)
+    nota(conn, ano=2025, ideb=6.6)
+    assert indicadores.ideb_por_municipio(conn)[0]["ano"] == 2025
+
+
+# Verifica que bater a meta é calculado, e não chutado pelo painel.
+def test_diz_se_bateu_a_meta(conn):
+    nota(conn, ideb=6.6, meta=6.1)
+    nota(conn, codigo="5200050", ideb=5.0, meta=6.1)
+    por_codigo = {l["codigo_ibge"]: l["bateu_meta"] for l in indicadores.ideb_por_municipio(conn)}
+    assert por_codigo == {"5208707": True, "5200050": False}
+
+
+# Verifica que ano sem meta publicada não vira meta batida nem meta perdida. O
+# INEP só projetou metas até 2021, e inventar uma seria mentir.
+def test_ano_sem_meta_nao_decide_nada(conn):
+    nota(conn, ano=2025, meta=None)
+    assert indicadores.ideb_por_municipio(conn)[0]["bateu_meta"] is None
+
+
+# Verifica que a série traz as duas metades da nota, que é o que permite dizer
+# se o município subiu por aprovar mais ou por aprender mais.
+def test_serie_traz_fluxo_e_aprendizagem(conn):
+    nota(conn, ano=2005, ideb=3.9, rendimento=0.85, valor=4.55)
+    nota(conn, ano=2025, ideb=6.6, rendimento=0.99, valor=6.66)
+    serie = indicadores.serie_ideb(conn, "5208707")
+    assert [(l["ano"], l["rendimento"], l["nota"]) for l in serie] == [
+        (2005, 0.85, 4.55), (2025, 0.99, 6.66)]
+
+
+# Verifica que sem município a série é a média do estado, e diz de quantos.
+def test_serie_sem_municipio_e_o_estado(conn):
+    nota(conn, codigo="5208707", ideb=6.0)
+    nota(conn, codigo="5200050", ideb=7.0)
+    serie = indicadores.serie_ideb(conn)
+    assert (serie[0]["ideb"], serie[0]["municipios"]) == (6.5, 2)

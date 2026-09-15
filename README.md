@@ -258,7 +258,9 @@ O robots.txt do Tribunal de Contas dos Municípios desaconselha coleta automatiz
 - [x] Painel web com o mapa dos 246 municípios
 - [x] Painel com as três visões: mapa, cruzamento entre indicadores e série histórica
 - [x] Eixo educação com o INEP, matrícula como denominador e gasto por aluno
-- [ ] IDEB por etapa e rede, cruzado com o gasto por aluno
+- [x] IDEB por etapa e rede, com a decomposição entre aprovação e aprendizagem
+- [x] Página própria do município, com os oito indicadores e a posição no ranking
+- [ ] Busca e comparação entre dois municípios
 - [ ] Publicar o painel na Vercel e a API com o banco na VPS
 
 A ordem de ataque começa pelo portal de Goiás com o IBGE junto, porque é onde a razão entre esforço e resultado é melhor: SQL aberto, dado atualizado diariamente e chave de município limpa. Com essas duas fontes já saem indicadores de saúde e de ouvidoria de verdade.

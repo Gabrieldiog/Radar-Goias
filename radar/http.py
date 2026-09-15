@@ -1,11 +1,28 @@
 """Cliente HTTP das fontes públicas: no máximo uma requisição por segundo por domínio."""
 
+import ssl
 import time
+from pathlib import Path
 from typing import Any, NamedTuple
 
+import certifi
 import httpx
 
 UA = "RadarGoias/0.1 (+projeto academico UFG; contato rniedson@gmail.com)"
+INTERMEDIARIO = Path(__file__).parent / "dados" / "inep_intermediario.pem"
+
+
+def confianca() -> ssl.SSLContext:
+    """O servidor do INEP manda só o certificado da ponta e omite o intermediário.
+
+    O curl disfarça porque busca o que falta sozinho, mas o Python não, e a
+    conexão morre com falha de certificado. O intermediário viaja junto do
+    código: isso completa a cadeia sem baixar a guarda, porque a raiz que o
+    assina é a mesma que o Python já confiava.
+    """
+    contexto = ssl.create_default_context(cafile=certifi.where())
+    contexto.load_verify_locations(cafile=str(INTERMEDIARIO))
+    return contexto
 
 
 class Resposta(NamedTuple):
@@ -17,7 +34,12 @@ class Resposta(NamedTuple):
 
 class Cliente:
     def __init__(self, transport=None, espera=1.0, relogio=time.monotonic, dorme=time.sleep):
-        self._http = httpx.Client(transport=transport, headers={"user-agent": UA}, timeout=30)
+        self._http = httpx.Client(
+            transport=transport,
+            headers={"user-agent": UA},
+            timeout=30,
+            verify=confianca() if transport is None else True,
+        )
         self._espera = espera
         self._relogio = relogio
         self._dorme = dorme

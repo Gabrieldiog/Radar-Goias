@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import Mapa from "./mapa";
 import Tabela from "./tabela";
 import Evolucao from "./evolucao";
 import Cruzamento from "./cruzamento";
+import Aprendizagem from "./aprendizagem";
 import { EIXOS, INDICADORES, fmt } from "./indicadores";
 
 const MAPEAVEIS = Object.entries(INDICADORES).filter(([, v]) => v.eixo !== "Atendimento ao cidadão");
@@ -21,6 +23,7 @@ export default function Painel() {
   const [municipios, setMunicipios] = useState([]);
   const [serie, setSerie] = useState(null);
   const [ondeSerie, setOndeSerie] = useState("");
+  const [assunto, setAssunto] = useState("dengue");
   const [escolhido, setEscolhido] = useState("leitos-rede-estadual");
   const [resposta, setResposta] = useState(null);
   const [selecionado, setSelecionado] = useState(null);
@@ -38,10 +41,10 @@ export default function Painel() {
     if (aba !== "evolucao") return;
     setSerie(null);
     const filtro = ondeSerie ? `?municipio=${ondeSerie}` : "";
-    busca(`/v1/series/dengue${filtro}`)
+    busca(`/v1/series/${assunto}${filtro}`)
       .then((d) => setSerie(d.dados))
       .catch((e) => setErro(e.message));
-  }, [aba, ondeSerie]);
+  }, [aba, assunto, ondeSerie]);
 
   useEffect(() => {
     setResposta(null);
@@ -86,8 +89,8 @@ export default function Painel() {
       <header className="capa">
         <h1>Radar Goiás</h1>
         <p className="tese">
-          Sete indicadores dos 246 municípios, calculados cruzando seis fontes públicas que não
-          conversam entre si.
+          {Object.keys(INDICADORES).length} indicadores dos 246 municípios, calculados cruzando
+          seis fontes públicas que não conversam entre si.
         </p>
       </header>
 
@@ -107,11 +110,20 @@ export default function Painel() {
 
       {!erro && aba === "evolucao" && (
         <section className="vista">
-          <h2>Casos de dengue, ano a ano</h2>
+          <h2>{assunto === "dengue" ? "Casos de dengue, ano a ano" : "IDEB, ano a ano"}</h2>
           <p className="apoio">
-            Dezessete anos da mesma base, para ver se um ano ruim foi fora do comum ou rotina.
+            {assunto === "dengue"
+              ? "Dezessete anos da mesma base, para ver se um ano ruim foi fora do comum ou rotina."
+              : "Vinte anos de nota, com as duas metades que a formam separadas."}
           </p>
           <div className="eixos">
+            <label>
+              O que
+              <select value={assunto} onChange={(e) => setAssunto(e.target.value)}>
+                <option value="dengue">Casos de dengue</option>
+                <option value="ideb">IDEB dos anos iniciais</option>
+              </select>
+            </label>
             <label>
               Onde
               <select value={ondeSerie} onChange={(e) => setOndeSerie(e.target.value)}>
@@ -122,10 +134,12 @@ export default function Painel() {
               </select>
             </label>
           </div>
-          {serie ? (
+          {!serie ? (
+            <p className="aviso">Carregando a série.</p>
+          ) : assunto === "dengue" ? (
             <Evolucao serie={serie} onde={ondeNome} />
           ) : (
-            <p className="aviso">Carregando a série.</p>
+            <Aprendizagem serie={serie} onde={ondeNome} />
           )}
         </section>
       )}
@@ -235,6 +249,12 @@ export default function Painel() {
                       <p className="apoio">
                         População estimada pelo IBGE em {detalhe.ano_populacao}. Fontes:{" "}
                         {resposta.meta.fontes.join(", ")}.
+                      </p>
+                      <p>
+                        <Link href={`/municipio/${detalhe.codigo_ibge}`} className="voltar">
+                          Ver os {Object.keys(INDICADORES).length - 1} indicadores de{" "}
+                          {detalhe.nome}
+                        </Link>
                       </p>
                     </>
                   ) : (

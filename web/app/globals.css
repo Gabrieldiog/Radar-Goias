@@ -201,3 +201,72 @@ body {
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+.decomposicao { margin-top: 26px; overflow-x: auto; }
+.decomposicao .tabela th:first-child,
+.decomposicao .tabela td:first-child { padding-right: 20px; white-space: nowrap; }
+.decomposicao .tabela th.num, .decomposicao .tabela td.num { text-align: right; padding-left: 10px; }
+.decomposicao .tabela tbody td:first-child { color: var(--tinta-suave); }
+
+.voltar {
+  font-family: inherit;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+  text-decoration: none;
+  border-bottom: 1px solid var(--linha-forte);
+  padding-bottom: 2px;
+}
+
+.voltar:hover { color: var(--ouro); border-bottom-color: var(--ouro); }
+.voltar:focus-visible { outline: 2px solid var(--ouro); outline-offset: 3px; }
+
+.capa .voltar { display: inline-block; margin-bottom: 18px; }
+
+.bloco-eixo { padding-top: 34px; }
+.bloco-eixo h2 { margin-bottom: 14px; }
+
+/* sem régua vertical entre cartões: a grade deixa célula vazia no fim da linha
+   e a borda dela ficaria pendurada no vazio */
+.fichas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 22px 32px;
+  margin: 0;
+  padding: 18px 0 22px;
+  border-top: 1px solid var(--linha-forte);
+  border-bottom: 1px solid var(--linha-forte);
+}
+
+.cartao.vazio { color: var(--tinta-suave); }
+
+.cartao dt { font-size: 0.82rem; color: var(--tinta-suave); margin: 0 0 6px; }
+.cartao dd { margin: 0; }
+
+.cartao .numero {
+  font-size: 1.85rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.cartao.vazio .numero { font-size: 1.05rem; font-weight: 400; }
+.cartao .unidade { font-size: 0.82rem; color: var(--tinta-suave); margin-top: 6px; }
+
+.cartao .lugar {
+  font-size: 0.82rem;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--linha);
+  color: var(--tinta-suave);
+}
+
+.rodape a { color: var(--tinta); text-decoration: underline; text-underline-offset: 2px; }
+.rodape a:hover { color: var(--ouro); }
+
+@media (max-width: 880px) {
+  .fichas { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .cartao .numero { font-size: 1.5rem; }
+}

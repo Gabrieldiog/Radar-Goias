@@ -79,6 +79,20 @@ export const INDICADORES = {
       ).toFixed(1).replace('.', ',')} vezes o que ${baixo.nome} gasta.`;
     },
   },
+  "ideb-anos-iniciais": {
+    curto: "IDEB dos anos iniciais",
+    eixo: "Educação",
+    campo: "ideb",
+    rotulo: "IDEB",
+    unidade: "nota de 0 a 10",
+    destaque: (linhas) => {
+      const alto = linhas[0];
+      const baixo = linhas[linhas.length - 1];
+      return `${alto.nome} tem nota ${fmt(alto.ideb)} e ${baixo.nome} tem ${fmt(
+        baixo.ideb
+      )}, nos mesmos anos iniciais da rede municipal.`;
+    },
+  },
   "ouvidoria-por-orgao": {
     curto: "tempo de resposta da ouvidoria",
     eixo: "Atendimento ao cidadão",

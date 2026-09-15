@@ -90,3 +90,16 @@ create table if not exists matricula (
     coleta_id   bigint  references coleta,
     primary key (codigo_ibge, ano, dependencia)
 );
+
+create table if not exists ideb (
+    codigo_ibge text    not null references municipio,
+    ano         integer not null,
+    etapa       text    not null check (etapa in ('anos_iniciais', 'anos_finais', 'ensino_medio')),
+    rede        text    not null check (rede in ('federal', 'estadual', 'municipal', 'publica')),
+    ideb        numeric not null check (ideb >= 0),
+    meta        numeric check (meta >= 0),
+    rendimento  numeric check (rendimento >= 0),
+    nota        numeric check (nota >= 0),
+    coleta_id   bigint  references coleta,
+    primary key (codigo_ibge, ano, etapa, rede)
+);

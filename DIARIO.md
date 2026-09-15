@@ -142,3 +142,35 @@ O resultado carrega os dois anos que o produziram, o exercício da despesa e o a
 O despacho da API precisou de cuidado. Já existia gasto em educação por habitante, e o novo é gasto em educação por aluno. Os dois começam igual, e a regra que separava indicador por prefixo mandaria o novo para a rota antiga, devolvendo o número errado com status 200. Escrevemos o teste que prova a separação antes de confiar nela.
 
 Cinco mutações, e três sobreviveram na primeira rodada. Duas eram falha de teste de verdade. A que tirava o filtro de rede passou porque o teste olhava só a primeira linha do resultado, e a linha certa continuava em primeiro; agora ele exige que exista uma linha só. A que trocava o censo mais recente pelo mais antigo passou porque o teste tinha um ano só cadastrado, exatamente o erro que já tínhamos cometido com a população no dia 4; agora ele cadastra dois anos. A terceira era mutação equivalente, sem efeito, e a rodada seguinte confirmou isso.
+
+## Dia 15, 23 de agosto de 2026
+
+O IDEB entrou, e com ele o eixo educação ficou completo. São três planilhas do INEP, uma por etapa, somando 58 MB, e 14.295 notas de Goiás guardadas, cobrindo onze medições de 2005 a 2025.
+
+A planilha é larga do jeito que planilha feita para gente ler costuma ser: cada ano é uma coluna, e são 133 delas. O código transforma isso em uma linha por ano, que é a forma que o banco e o gráfico precisam. As três armadilhas que a pesquisa tinha anotado estavam todas lá. O cabeçalho de máquina está na linha 10, porque as nove primeiras são título e legenda. Ausência de medida é escrita como um traço, e virar zero seria dizer que o município tirou a pior nota possível. E a rede "Pública" é o agregado das outras, então ela entra com nome próprio e nunca é somada junto.
+
+Uma quarta armadilha a pesquisa não tinha visto: existem quatro redes em Goiás, e não três. Há uma escola federal.
+
+O problema do dia foi de rede, não de dado. O download morria com erro de certificado, mesmo o curl funcionando na mesma URL. O servidor do INEP manda só o certificado da ponta e omite o intermediário, e o curl no macOS disfarça porque vai buscar o que falta sozinho, enquanto o Python não vai. A saída fácil seria desligar a verificação, e a saída certa foi baixar o intermediário do endereço que o próprio certificado indica, conferir que ele é assinado por uma raiz que o Python já confiava, e deixá-lo viajar junto do código. A cadeia fecha com a verificação inteira ligada, e isso vale também para o Docker, onde o sistema operacional não teria esse certificado guardado.
+
+Guardamos as duas metades que formam a nota, e não só a nota. Cinco mutações, todas pegas.
+
+## Dia 16, 23 de agosto de 2026
+
+A nota virou indicador e virou gráfico, e o gráfico descobriu sozinho uma coisa que o número do IDEB esconde.
+
+O IDEB é o produto de duas medidas que o INEP publica separadas: quanto se aprova e quanto se aprende. O painel mostra as duas embaixo das barras, e a frase do topo procura o ano em que a nota caiu e diz de onde veio a queda. Em Goiás ela aponta para 2021: a nota caiu de 6,1 para 5,8, mas a aprovação subiu, de 97% para 98%. Ou seja, aprovou mais e aprendeu menos. É a pandemia aparecendo na decomposição, e é uma leitura que a nota sozinha não entrega.
+
+Tem outra coisa nesse mesmo gráfico. A aprovação saiu de 85% em 2005 e chegou a 99% em 2025, o que quer dizer que ela está no teto. De agora em diante, quase todo ganho de IDEB em Goiás tem que vir de aprendizagem, porque do outro lado não sobrou espaço.
+
+Escolhemos anos iniciais na rede municipal de propósito, e o dado justifica: 241 dos 246 municípios têm rede própria nos anos iniciais, contra 3 no ensino médio, que é do estado. Comparar o gasto do município com uma etapa que ele não comanda seria cobrar dele o resultado de outro.
+
+## Dia 17, 23 de agosto de 2026
+
+O município ganhou página própria. Antes dava para clicar no mapa e ver um número; agora `/municipio/5208707` abre a ficha inteira, com os oito indicadores agrupados por eixo, a posição de cada um no ranking estadual e a série do IDEB daquele município.
+
+A posição passou a vir da API, e ela tem um cuidado que parece detalhe e não é: município sem dado publicado fica de fora da contagem, em vez de aparecer em último lugar. Não ter leito cadastrado é diferente de ser o pior em leitos.
+
+Goiânia mostra bem para que serve a ficha. Ela é 6ª em leitos entre os 23 que têm, 73ª em dengue entre 246, e a pior do estado em unidades de saúde por habitante. No IDEB fica em 114º de 241, atrás da maioria dos municípios pequenos.
+
+Oito mutações e uma sobreviveu. O teste que dizia proteger o ranking de município sem dado não protegia nada, porque o indicador que usei no cenário nunca devolve linha com valor nulo, então o filtro nunca era exercido. Trocamos por um teste da função direto, com uma linha nula no meio, e agora ele pega.

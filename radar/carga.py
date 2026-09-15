@@ -3,7 +3,7 @@ from pathlib import Path
 from urllib.parse import quote
 
 from radar import banco, municipios
-from radar.fontes import ckan_go, ibge, inep, ms_cnes, siconfi, sinesp
+from radar.fontes import ckan_go, ibge, ideb, inep, ms_cnes, siconfi, sinesp
 
 
 def executa(conn, cliente) -> dict:
@@ -132,3 +132,30 @@ def executa_educacao(conn, cliente, ano: int = 2024, caminho=None) -> dict:
         "matriculas": banco.grava_matriculas(conn, matriculas, coleta),
         "alunos": sum(m.alunos for m in matriculas),
     }
+
+
+def _baixa_uma_vez(conn, cliente, fonte, url, caminho) -> int:
+    """Reusa o arquivo já baixado, para não pedir de novo o mesmo ao servidor."""
+    if caminho.exists():
+        return banco.grava_coleta(conn, fonte, str(caminho), 200, caminho.stat().st_size)
+    resposta = cliente.arquivo(url, caminho, tentativas=4)
+    return banco.grava_coleta(conn, fonte, resposta.url, resposta.status, resposta.bytes)
+
+
+def executa_ideb(conn, cliente, ano: int = 2025, pasta=None) -> dict:
+    """Baixa as três planilhas do IDEB e grava as notas de Goiás.
+
+    São três arquivos, um por etapa, somando 58 MB, e o IDEB sai a cada dois
+    anos, então isso não entra na carga de todo dia.
+    """
+    banco.aplica_esquema(conn)
+    banco.carrega_municipios(conn)
+    pasta = Path(pasta or tempfile.gettempdir())
+    gravadas, etapas = 0, {}
+    for etapa in ideb.ETAPAS:
+        caminho = pasta / f"{ideb.ETAPAS[etapa]}_{ano}.zip"
+        coleta = _baixa_uma_vez(conn, cliente, "inep-ideb", ideb.url_ideb(etapa, ano), caminho)
+        notas = ideb.le_ideb(caminho, etapa)
+        etapas[etapa] = len(notas)
+        gravadas += banco.grava_ideb(conn, notas, coleta)
+    return {"ideb": gravadas, **etapas}

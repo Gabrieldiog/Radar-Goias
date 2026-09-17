@@ -200,3 +200,17 @@ E aqui apareceu o pior bug que este projeto teve até agora, justamente no requi
 A correção é uma linha, mas o que importa é o que veio junto: um teste que lê o código com AST, junta tudo que ele importa de fora e confere contra o que o `pyproject` declara. Tirar qualquer uma das duas dependências faz ele falhar. Esse teste teria pego o problema no dia em que ele nasceu.
 
 Subimos do zero, com o volume apagado, para conferir de verdade: os três containers de pé, as quatro telas do painel respondendo, a chave de acesso sem aparecer no HTML entregue ao navegador, e os 246 municípios com dado. A carga de educação dentro do container leva 45 segundos, e o certificado intermediário do INEP que guardamos no dia 15 funcionou no Linux do container, que é onde ele mais fazia falta.
+
+## Dia 21, 25 de agosto de 2026
+
+O painel ganhou um desenho de verdade, e não um retoque.
+
+Antes, tudo na tela tinha mais ou menos o mesmo peso: título, botões, frase, mapa. Agora existe hierarquia. Uma faixa escura abre todas as telas, com a marca, os atalhos e o título grande. Entraram duas famílias tipográficas novas junto da que já havia: uma de display, que carrega personalidade, e uma monoespaçada para número e rótulo, que é o registro certo para um projeto que fala de código IBGE e status HTTP.
+
+A frase que cada visão calcula do próprio dado virou manchete, no maior corpo da página depois do título. Era a coisa mais valiosa do painel e estava no tamanho de uma legenda.
+
+O acréscimo que mais mudou a leitura foi uma faixa com 246 quadrinhos, um por município, do maior para o menor. É a única tela que mostra os 246 de uma vez e responde de relance a pergunta que este projeto mais repete: quantos ficaram de fora? Em leitos, 223 dos quadrinhos aparecem vazios. A frase já dizia isso, mas ver é outra coisa.
+
+Dois cuidados de sentido, e não de gosto. Os quadrinhos sem dado usam a mesma hachura que o mapa usa para sem dado, então "não existe este número aqui" tem uma linguagem só no painel inteiro. E o tom mais claro da rampa foi escurecido, porque no papel novo ele quase sumia, e município de valor baixo parecia buraco no mapa em vez de dado.
+
+As quatro telas passaram a compartilhar o mesmo cabeçalho num componente só, para o desenho não se soltar de uma página para a outra. O painel inteiro foi reconstruído no Docker e conferido ali, que é onde o professor vai ver.

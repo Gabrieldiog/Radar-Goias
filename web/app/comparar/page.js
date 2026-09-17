@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Faixa from "../faixa";
 import { EIXOS, INDICADORES, fmt } from "../indicadores";
 
 const PADRAO_A = "5208707";
@@ -76,17 +77,14 @@ export default function Comparar() {
   );
 
   return (
-    <main className="painel">
-      <header className="capa">
-        <Link href="/" className="voltar">Radar Goiás</Link>
-        <h1>Duas cidades, lado a lado</h1>
-        <p className="tese">
-          Os mesmos {mapeaveis.length} indicadores, calculados do mesmo jeito para as duas, com a
-          posição de cada uma entre os 246 municípios.
-        </p>
-      </header>
+    <>
+      <Faixa
+        titulo="Duas cidades, lado a lado"
+        apoio={`Os mesmos ${mapeaveis.length} indicadores, calculados do mesmo jeito para as duas, com a posição de cada uma entre os 246 municípios.`}
+      />
 
-      <div className="eixos">
+      <main className="painel">
+      <div className="eixos vista">
         <label>
           De um lado
           <select value={a} onChange={(e) => setA(e.target.value)}>
@@ -157,6 +155,7 @@ export default function Comparar() {
         Município pequeno oscila muito, então diferença pequena entre duas cidades de poucos
         milhares de moradores pode sumir no ano seguinte. <Link href="/">Voltar ao mapa</Link>.
       </footer>
-    </main>
+      </main>
+    </>
   );
 }

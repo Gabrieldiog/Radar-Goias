@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import Aprendizagem from "../../aprendizagem";
+import Faixa from "../../faixa";
 import { EIXOS, INDICADORES, fmt } from "../../indicadores";
 
 async function busca(caminho) {
@@ -43,17 +44,13 @@ export default function Municipio({ params }) {
   const cobertos = comDado.filter((id) => ficha.indicadores[id] != null).length;
 
   return (
-    <main className="painel">
-      <header className="capa">
-        <Link href="/" className="voltar">Radar Goiás</Link>
-        <h1>{ficha.nome}</h1>
-        <p className="tese">
-          {ficha.habitantes.toLocaleString("pt-BR")} moradores, pela estimativa do IBGE de{" "}
-          {ficha.ano_populacao}. {cobertos} dos {comDado.length} indicadores têm dado publicado
-          para este município.
-        </p>
-      </header>
+    <>
+      <Faixa
+        titulo={ficha.nome}
+        apoio={`${ficha.habitantes.toLocaleString("pt-BR")} moradores, pela estimativa do IBGE de ${ficha.ano_populacao}. ${cobertos} dos ${comDado.length} indicadores têm dado publicado para este município.`}
+      />
 
+      <main className="painel">
       {EIXOS.filter((e) => e !== "Atendimento ao cidadão").map((eixo) => {
         const ids = comDado.filter((id) => INDICADORES[id].eixo === eixo);
         return (
@@ -90,6 +87,7 @@ export default function Municipio({ params }) {
         habitantes viram uma taxa alta que não se repete no ano seguinte.{" "}
         <Link href="/">Voltar ao mapa do estado</Link>.
       </footer>
-    </main>
+      </main>
+    </>
   );
 }

@@ -3,7 +3,7 @@
 // Um quadrinho por município, do maior para o menor, com os sem dado no fim.
 // É a única tela que mostra os 246 de uma vez, e ela responde de relance a
 // pergunta que mais se repete neste projeto: quantos ficaram de fora?
-const RAMPA = ["#e4e9e7", "#b9cfcb", "#7fafaa", "#3f8489", "#14555f"];
+const RAMPA = ["#d5e2de", "#b9cfcb", "#7fafaa", "#3f8489", "#14555f"];
 
 function cor(valor, maximo) {
   const posicao = Math.sqrt(valor / maximo);

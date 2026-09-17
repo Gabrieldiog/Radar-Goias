@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Faixa from "../faixa";
 
 async function busca(caminho) {
   const r = await fetch(`/api/radar${caminho}`);
@@ -50,17 +51,14 @@ export default function Procedencia() {
   const coletas = dados.fontes.reduce((s, f) => s + f.coletas, 0);
 
   return (
-    <main className="painel">
-      <header className="capa">
-        <Link href="/" className="voltar">Radar Goiás</Link>
-        <h1>De onde veio cada número</h1>
-        <p className="tese">
-          Toda requisição feita a um servidor público fica gravada com data, endereço, status e
-          tamanho da resposta. Nenhum número deste painel existe sem essa linha.
-        </p>
-      </header>
+    <>
+      <Faixa
+        titulo="De onde veio cada número"
+        apoio="Toda requisição feita a um servidor público fica gravada com data, endereço, status e tamanho da resposta. Nenhum número deste painel existe sem essa linha."
+      />
 
-      <p className="veredito">
+      <main className="painel">
+      <p className="manchete">
         {NUM(linhas)} linhas de dado, trazidas por {NUM(coletas)} requisições a{" "}
         {dados.fontes.length} fontes públicas.
         {recusadas > 0
@@ -134,6 +132,7 @@ export default function Procedencia() {
         Fonte que responde incompleta não grava nada pela metade.{" "}
         <Link href="/">Voltar ao mapa</Link>.
       </footer>
-    </main>
+      </main>
+    </>
   );
 }

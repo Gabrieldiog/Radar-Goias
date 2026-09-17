@@ -289,6 +289,14 @@ Duas coisas que a pesquisa mostrou não valerem o esforço e que já ficam corta
 
 ## Como rodar
 
+Clone e suba:
+
+    git clone https://github.com/Gabrieldiog/Radar-Goias.git
+    cd Radar-Goias
+    docker compose up -d
+
+O painel abre em `http://localhost:3000`. Se ele mostrar os eixos de educação e segurança vazios, é porque essas três cargas são pesadas e ficam de fora da primeira subida, como está explicado logo abaixo. Não é defeito.
+
 O caminho mais curto é `docker compose up -d`. Isso sobe o banco, a API e o painel, e carrega os dados do núcleo. Em pouco mais de um minuto o painel abre em `http://localhost:3000` e a API responde em `http://localhost:8000`.
 
 Três fontes ficam fora dessa primeira carga, porque são pesadas e mudam pouco. Rode uma vez cada, na ordem que quiser, e o painel passa a mostrar os cinco eixos completos:
@@ -305,7 +313,7 @@ Se as portas 5433, 8000 ou 3000 estiverem ocupadas na sua máquina, troque com `
 
 ### Rodando sem Docker
 
-Suba um PostgreSQL, crie o ambiente virtual com `python3 -m venv .venv` e instale com `.venv/bin/python -m pip install -e ".[dev]"`.
+Suba um PostgreSQL e crie o ambiente virtual com **`python3.12 -m venv .venv`**. A versão importa: o macOS traz um Python 3.9 no `python3`, e com ele a instalação falha. Depois instale com `.venv/bin/python -m pip install -e ".[dev]"`.
 
 Carregue os dados com `.venv/bin/python -m radar` e suba a API com `RADAR_CHAVES=demo .venv/bin/uvicorn --factory radar.api:cria_app`.
 

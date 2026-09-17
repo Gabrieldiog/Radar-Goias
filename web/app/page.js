@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Mapa from "./mapa";
 import Tabela from "./tabela";
@@ -18,6 +18,11 @@ const ABAS = [
   ["evolucao", "Como mudou"],
 ];
 
+// "goiania" precisa achar "Goiânia": quem digita rápido não põe acento, e o
+// backend já normaliza do mesmo jeito para cruzar as fontes
+const semAcento = (t) =>
+  t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
 async function busca(caminho) {
   const r = await fetch(`/api/radar${caminho}`);
   if (!r.ok) throw new Error(`a API respondeu ${r.status}`);
@@ -34,6 +39,9 @@ export default function Painel() {
   const [escolhido, setEscolhido] = useState("leitos-rede-estadual");
   const [resposta, setResposta] = useState(null);
   const [selecionado, setSelecionado] = useState(null);
+  const [filtro, setFiltro] = useState("");
+  const lista = useRef(null);
+  const escolhida = useRef(null);
   const [eixoX, setEixoX] = useState("gasto-saude-por-habitante");
   const [eixoY, setEixoY] = useState("incidencia-dengue");
   const [cruzados, setCruzados] = useState(null);
@@ -56,7 +64,9 @@ export default function Painel() {
   useEffect(() => {
     setResposta(null);
     setSelecionado(null);
-    busca(`/v1/indicadores/${escolhido}`).then(setResposta).catch((e) => setErro(e.message));
+    busca(`/v1/indicadores/${escolhido}`)
+      .then((d) => setResposta({ ...d, id: escolhido }))
+      .catch((e) => setErro(e.message));
   }, [escolhido]);
 
   useEffect(() => {
@@ -67,27 +77,52 @@ export default function Painel() {
         const outro = Object.fromEntries(
           y.dados.map((l) => [l.codigo_ibge, l[INDICADORES[eixoY].campo]])
         );
-        setCruzados(
-          x.dados
+        setCruzados({
+          id: `${eixoX}|${eixoY}`,
+          pontos: x.dados
             .filter((l) => outro[l.codigo_ibge] != null)
             .map((l) => ({
               codigo: l.codigo_ibge,
               nome: l.nome,
               x: l[INDICADORES[eixoX].campo],
               y: outro[l.codigo_ibge],
-            }))
-        );
+            })),
+        });
       })
       .catch((e) => setErro(e.message));
   }, [aba, eixoX, eixoY]);
 
+  // clicar no mapa ou no quadrinho leva a lista até o município, em vez de
+  // deixar o usuário procurar à mão numa lista de 246
+  useEffect(() => {
+    const alvo = escolhida.current;
+    const caixa = lista.current;
+    if (!alvo || !caixa) return;
+    const meio = alvo.offsetTop - caixa.clientHeight / 2 + alvo.clientHeight / 2;
+    const suave = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    caixa.scrollTo({ top: Math.max(0, meio), behavior: suave ? "smooth" : "auto" });
+  }, [selecionado, escolhido]);
+
+  // vir do mapa com um filtro ligado esconderia justamente quem foi clicado
+  const seleciona = (codigo) => {
+    setFiltro("");
+    setSelecionado(codigo);
+  };
+
   const meta = INDICADORES[escolhido];
-  const linhas = resposta?.dados ?? [];
-  const porOrgao = resposta?.meta?.dimensao === "orgao";
+  const pronto = resposta?.id === escolhido;
+  const linhas = pronto ? resposta.dados : [];
+  const porOrgao = pronto && resposta.meta?.dimensao === "orgao";
   const valores = Object.fromEntries(linhas.map((l) => [l.codigo_ibge, l[meta.campo]]));
   const nomes = Object.fromEntries(linhas.map((l) => [l.codigo_ibge, l.nome]));
   const maiorValor = Math.max(...linhas.map((l) => l[meta.campo] ?? 0), 1);
   const ondeNome = municipios.find((m) => m.codigo_ibge === ondeSerie)?.nome ?? "Goiás inteiro";
+  // a posição vem da lista inteira, para filtrar não renumerar o ranking
+  const comPosicao = linhas.map((l, i) => ({ ...l, posicao: i + 1 }));
+  const procurado = semAcento(filtro);
+  const listados = procurado
+    ? comPosicao.filter((l) => semAcento(l.nome).includes(procurado))
+    : comPosicao;
   const posicao = linhas.findIndex((l) => l.codigo_ibge === selecionado);
   const detalhe = posicao >= 0 ? linhas[posicao] : null;
 
@@ -182,9 +217,9 @@ export default function Painel() {
                 </select>
               </label>
             </div>
-            {cruzados ? (
+            {cruzados?.id === `${eixoX}|${eixoY}` ? (
               <Cruzamento
-                pontos={cruzados}
+                pontos={cruzados.pontos}
                 x={INDICADORES[eixoX]}
                 y={INDICADORES[eixoY]}
                 selecionado={selecionado}
@@ -218,7 +253,7 @@ export default function Painel() {
               ))}
             </nav>
 
-            {!resposta ? (
+            {!pronto ? (
               <p className="aviso">Carregando o indicador.</p>
             ) : (
               <>
@@ -230,11 +265,11 @@ export default function Painel() {
                   <>
                     <Cobertura
                       linhas={linhas}
+                      municipios={municipios}
                       campo={meta.campo}
                       unidade={meta.unidade}
-                      total={246}
                       selecionado={selecionado}
-                      aoSelecionar={setSelecionado}
+                      aoSelecionar={seleciona}
                     />
 
                     {!malha ? (
@@ -247,14 +282,31 @@ export default function Painel() {
                           nomes={nomes}
                           unidade={meta.unidade}
                           selecionado={selecionado}
-                          aoSelecionar={setSelecionado}
+                          aoSelecionar={seleciona}
                         />
                         <section className="ranking">
-                          <h3>Do maior para o menor</h3>
-                          <ol>
-                            {linhas.map((l, i) => (
+                          <div className="ranking-topo">
+                            <h3>Do maior para o menor</h3>
+                            <input
+                              type="search"
+                              value={filtro}
+                              onChange={(e) => setFiltro(e.target.value)}
+                              placeholder="Procurar município"
+                              aria-label="Procurar município na lista"
+                            />
+                          </div>
+                          {procurado && (
+                            <p className="ranking-conta">
+                              {listados.length === 0
+                                ? `Nenhum município com "${filtro}" tem este dado.`
+                                : `${listados.length} de ${linhas.length} municípios.`}
+                            </p>
+                          )}
+                          <ol ref={lista}>
+                            {listados.map((l) => (
                               <li
                                 key={l.codigo_ibge}
+                                ref={l.codigo_ibge === selecionado ? escolhida : null}
                                 onClick={() => setSelecionado(l.codigo_ibge)}
                                 aria-current={l.codigo_ibge === selecionado}
                               >
@@ -264,7 +316,7 @@ export default function Painel() {
                                     width: `calc(${((l[meta.campo] ?? 0) / maiorValor) * 100}% - 42px)`,
                                   }}
                                 />
-                                <span className="pos">{i + 1}</span>
+                                <span className="pos">{l.posicao}</span>
                                 <span>{l.nome}</span>
                                 <span className="valor">{fmt(l[meta.campo])}</span>
                               </li>
@@ -283,12 +335,16 @@ export default function Painel() {
                         <p>
                           <strong>{detalhe.nome}</strong> aparece em{" "}
                           <strong>{posicao + 1}º de {linhas.length}</strong>, com{" "}
-                          {fmt(detalhe[meta.campo])} {meta.unidade}, entre{" "}
-                          {detalhe.habitantes.toLocaleString("pt-BR")} moradores.
+                          {fmt(detalhe[meta.campo])} {meta.unidade}
+                          {detalhe.habitantes
+                            ? `, entre ${detalhe.habitantes.toLocaleString("pt-BR")} moradores.`
+                            : "."}
                         </p>
                         <p className="apoio">
-                          População estimada pelo IBGE em {detalhe.ano_populacao}. Fontes:{" "}
-                          {resposta.meta.fontes.join(", ")}.
+                          {detalhe.ano_populacao
+                            ? `População estimada pelo IBGE em ${detalhe.ano_populacao}. `
+                            : ""}
+                          Fontes: {resposta.meta.fontes.join(", ")}.
                         </p>
                         <p>
                           <Link href={`/municipio/${detalhe.codigo_ibge}`} className="voltar">
@@ -297,6 +353,12 @@ export default function Painel() {
                           </Link>
                         </p>
                       </>
+                    ) : selecionado ? (
+                      <p className="apoio">
+                        {municipios.find((m) => m.codigo_ibge === selecionado)?.nome ??
+                          "Este município"}{" "}
+                        não tem {meta.curto} publicado. Isso é diferente de ter valor zero.
+                      </p>
                     ) : (
                       <p className="apoio">
                         Clique num município, no quadrinho, no mapa ou na lista, para ver a posição

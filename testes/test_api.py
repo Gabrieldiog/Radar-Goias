@@ -253,3 +253,26 @@ def test_ficha_de_um_continua_igual(cliente):
     ficha = cliente.get(f"/v1/municipios/5208707?chave={CHAVE}").json()
     assert ficha["nome"] == "Goiânia"
     assert set(ficha) >= {"codigo_ibge", "habitantes", "indicadores", "posicoes"}
+
+
+# Verifica o contrato que o painel depende: todo indicador de município devolve
+# habitantes junto do valor. Sem isso a ficha quebra ao clicar num município, e
+# foi assim que o IDEB entrou quebrado sem ninguém notar.
+def test_todo_indicador_de_municipio_devolve_habitantes(cliente):
+    with banco.conecta() as c:
+        banco.grava_ubs(c, [("5208707", 150)])
+        banco.grava_leitos(c, [("5208707", "0000001", "UTI", "2026-01-01", 10, 5)])
+        banco.grava_despesas(c, [("5208707", 2025, "educacao", 1000000, 1000000)])
+        banco.grava_despesas(c, [("5208707", 2025, "saude", 1000000, 1000000)])
+        banco.grava_matriculas(c, [("5208707", 2024, "municipal", 3, 100)])
+        banco.grava_ideb(c, [("5208707", 2025, "anos_iniciais", "municipal", 6.6, 6.1, 0.99, 6.66)])
+        banco.grava_ocorrencias(c, [("5208707", 2026, 1, "Homicídio doloso", "Estadual", 4)])
+    for id, meta in api.CATALOGO.items():
+        if meta["dimensao"] != "municipio":
+            continue
+        dados = cliente.get(f"/v1/indicadores/{id}?chave={CHAVE}").json()["dados"]
+        assert dados, f"{id} não devolveu linha nenhuma no cenário do teste"
+        goiania = [l for l in dados if l["codigo_ibge"] == "5208707"]
+        assert goiania, f"{id} perdeu o município do cenário"
+        assert goiania[0].get("habitantes"), f"{id} não devolve habitantes"
+        assert goiania[0].get("ano_populacao"), f"{id} não diz de que ano é a população"

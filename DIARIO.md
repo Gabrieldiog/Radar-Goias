@@ -214,3 +214,24 @@ O acréscimo que mais mudou a leitura foi uma faixa com 246 quadrinhos, um por m
 Dois cuidados de sentido, e não de gosto. Os quadrinhos sem dado usam a mesma hachura que o mapa usa para sem dado, então "não existe este número aqui" tem uma linguagem só no painel inteiro. E o tom mais claro da rampa foi escurecido, porque no papel novo ele quase sumia, e município de valor baixo parecia buraco no mapa em vez de dado.
 
 As quatro telas passaram a compartilhar o mesmo cabeçalho num componente só, para o desenho não se soltar de uma página para a outra. O painel inteiro foi reconstruído no Docker e conferido ali, que é onde o professor vai ver.
+
+## Dia 22, 26 de agosto de 2026
+
+O painel quebrou na tela, e o erro apontava para o lugar errado.
+
+A mensagem dizia que a frase da ouvidoria tentou reduzir uma lista vazia. Só que a lista não estava vazia: a API devolvia 51 órgãos, 26 deles com mais de cem manifestações. O problema era outro, e mais feio.
+
+Quando se troca de indicador, o nome do escolhido muda na hora, mas os dados só chegam depois. Existe um quadro, um só, em que a tela roda a receita do indicador novo em cima das linhas do indicador velho. Ao ir de Leitos para Ouvidoria, a frase procurava tempo de resposta em linhas de leito, não achava nada, e estourava. Isso valia para todos os indicadores: os outros não quebravam, apenas mostravam o número errado por um instante, que é pior porque ninguém vê.
+
+A correção é estrutural. A resposta passou a dizer de qual indicador ela é, e a tela só desenha quando os dois batem. O mesmo vale para o cruzamento, que tinha exatamente o mesmo descompasso entre os dois eixos escolhidos e os pontos já carregados.
+
+Por cima disso veio uma segunda camada: cada frase agora aguenta receber menos linha do que espera e devolve um texto avisando, em vez de derrubar a página inteira. Conferimos as nove frases de três jeitos, com dado de verdade, com lista vazia e alimentadas de propósito com as linhas do indicador errado. Nenhuma quebra.
+
+E aí o conserto encontrou um terceiro bug, que estava escondido desde o dia 16. A consulta do IDEB não devolvia população, então clicar num município com o IDEB escolhido quebrava a ficha. Nunca tínhamos clicado nessa combinação. A primeira tentativa de correção juntou população à consulta e um teste antigo falhou na hora, com razão: com junção exigida, município sem população cadastrada sumiria do IDEB, e a nota do IDEB não se divide por habitante nenhum. Virou junção opcional, e a ficha passou a aguentar município sem população. Entrou também um teste de contrato que percorre o catálogo inteiro e exige que todo indicador de município devolva habitantes. É o teste que teria pego isso no dia 16.
+
+Fechamos com uma busca no ranking, que ignora acento, porque quem digita rápido escreve goiania e espera achar Goiânia, que é a mesma normalização que o sistema já faz para cruzar as fontes. A posição continua vindo da lista inteira, para filtrar não renumerar o ranking.
+
+Fechamos o dia com duas melhorias na faixa dos 246. Cada quadrinho passou a mostrar as iniciais do município, que não servem como identificador, porque três letras não separam Goiânia de Goianira, mas servem como pista, com o nome inteiro no tooltip. E os municípios sem dado deixaram de ser quadrinhos anônimos: agora eles vêm da lista completa dos 246, com nome e clique, porque município sem dado é município do mesmo jeito.
+
+A lista deixou de ser estática. Clicar no mapa ou num quadrinho rola o ranking até aquele município. Isso exigiu uma correção que parece detalhe: sem `position` na lista, a posição do item é medida a partir do corpo da página inteira, e a rolagem erra o alvo. E clicar no mapa com um filtro de busca ligado passou a limpar o filtro, porque senão a tela esconderia justamente quem foi clicado.
+

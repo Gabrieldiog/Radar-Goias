@@ -247,22 +247,45 @@ p { max-width: 68ch; }
 
 .celulas {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(12px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(30px, 1fr));
   gap: 3px;
   align-items: stretch;
 }
 
 .celula {
-  height: 22px;
+  height: 24px;
   border: 0;
   padding: 0;
   border-radius: 1px;
   cursor: pointer;
+  font-family: var(--mono), monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
   transition: transform 0.1s ease;
 }
 
-.celula:hover { transform: scaleY(1.22); }
-.celula.escolhida { outline: 2px solid var(--ouro); outline-offset: 1px; }
+/* as iniciais são pista, não identificador: ficam em baixo contraste para não
+   competir com a cor, que é quem carrega o valor */
+.celula.n0, .celula.n1, .celula.n2 { color: rgba(15, 26, 28, 0.55); }
+.celula.n3, .celula.n4 { color: rgba(255, 255, 255, 0.7); }
+.celula.sem { color: rgba(15, 26, 28, 0.42); }
+
+.celula:hover { transform: scale(1.12); }
+.celula.escolhida { outline: 2px solid var(--ouro); outline-offset: 1px; z-index: 1; }
+
+.oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 
 /* mesma hachura do mapa: sem dado tem uma linguagem só no painel inteiro */
 .celula.sem {
@@ -309,7 +332,17 @@ p { max-width: 68ch; }
 .legenda .sem svg { flex: none; margin-top: 3px; }
 
 .ranking { border-top: 2px solid var(--fundo); }
-.ranking ol { list-style: none; margin: 0; padding: 0; max-height: 560px; overflow-y: auto; }
+/* position aqui é o que faz offsetTop do item contar a partir da caixa, e não
+   do corpo da página: sem isso a rolagem até o município clicado erra o alvo */
+.ranking ol {
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 560px;
+  overflow-y: auto;
+  scroll-behavior: auto;
+}
 
 .ranking li {
   position: relative;
@@ -645,9 +678,41 @@ p { max-width: 68ch; }
   .cartao .numero { font-size: 1.6rem; }
   .duelo .valor { font-size: 1.15rem; }
   .duelo tbody th { padding-right: 14px; }
-  .celula { height: 18px; }
+  .celulas { grid-template-columns: repeat(auto-fill, minmax(28px, 1fr)); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
+}
+
+.ranking-topo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding-bottom: 10px;
+}
+
+.ranking-topo h3 { padding-bottom: 0; }
+
+.ranking-topo input {
+  font-family: var(--fonte), sans-serif;
+  font-size: 0.85rem;
+  color: var(--tinta);
+  padding: 6px 10px;
+  width: 11rem;
+  max-width: 55%;
+  border: 1px solid var(--linha-forte);
+  border-radius: 3px;
+  background: var(--papel-alto);
+}
+
+.ranking-topo input::placeholder { color: var(--tinta-clara); }
+.ranking-topo input:focus { border-color: var(--ouro); }
+
+.ranking-conta {
+  margin: 0 0 8px;
+  font-family: var(--mono), monospace;
+  font-size: 0.76rem;
+  color: var(--tinta-suave);
 }

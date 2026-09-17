@@ -367,3 +367,15 @@ def test_por_fonte_conta_coletas_e_recusas(conn):
     assert (por_fonte["ckan-go"]["coletas"], por_fonte["ckan-go"]["recusadas"]) == (2, 1)
     assert (por_fonte["ibge"]["coletas"], por_fonte["ibge"]["recusadas"]) == (1, 0)
     assert por_fonte["ckan-go"]["bytes"] == 100
+
+
+
+# Verifica que o IDEB não some quando o município não tem população cadastrada.
+# A nota não se divide por habitante nenhum, então exigir população seria perder
+# município por um motivo que não tem a ver com o indicador.
+def test_ideb_aparece_mesmo_sem_populacao(conn):
+    nota(conn, codigo="5200050", ideb=7.0)
+    linhas = indicadores.ideb_por_municipio(conn)
+    por_codigo = {l["codigo_ibge"]: l for l in linhas}
+    assert "5200050" in por_codigo
+    assert por_codigo["5200050"]["habitantes"] is None

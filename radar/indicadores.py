@@ -213,25 +213,35 @@ def gasto_por_aluno(
 # anos iniciais na rede municipal é o recorte que o município de fato comanda:
 # 241 dos 246 têm rede municipal aqui, contra 3 no ensino médio, que é do estado
 IDEB_POR_MUNICIPIO = """
+with pop as (
+    select distinct on (codigo_ibge) codigo_ibge, ano, habitantes, base
+    from populacao where base = %s order by codigo_ibge, ano desc
+)
 select i.codigo_ibge, m.nome, i.ano, i.etapa, i.rede,
        i.ideb::float8, i.meta::float8, i.rendimento::float8, i.nota::float8,
-       case when i.meta is null then null else i.ideb >= i.meta end as bateu_meta
+       case when i.meta is null then null else i.ideb >= i.meta end as bateu_meta,
+       p.habitantes, p.ano as ano_populacao, p.base as base_populacional
 from ideb i
 join municipio m using (codigo_ibge)
+left join pop p using (codigo_ibge)
 where i.etapa = %s and i.rede = %s and i.ano = %s
 order by i.ideb desc
 """
 
 
 def ideb_por_municipio(
-    conn, etapa: str = "anos_iniciais", rede: str = "municipal", ano: int | None = None
+    conn,
+    etapa: str = "anos_iniciais",
+    rede: str = "municipal",
+    ano: int | None = None,
+    base: str = "estimativa",
 ) -> list[dict]:
     if ano is None:
         ano = conn.execute(
             "select max(ano) from ideb where etapa = %s and rede = %s", (etapa, rede)
         ).fetchone()[0]
     with conn.cursor(row_factory=dict_row) as cur:
-        return cur.execute(IDEB_POR_MUNICIPIO, (etapa, rede, ano)).fetchall()
+        return cur.execute(IDEB_POR_MUNICIPIO, (base, etapa, rede, ano)).fetchall()
 
 
 # o IDEB é o produto de duas coisas, e a fonte publica as duas separadas: o

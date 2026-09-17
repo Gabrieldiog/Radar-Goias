@@ -23,6 +23,10 @@ PESQUISA_FONTES.md
 .env.*
 !.env.example
 *.pem
+# exceção: este é um certificado público de autoridade certificadora, e não uma
+# chave. Ele precisa viajar junto do código porque o servidor do INEP omite o
+# intermediário, e sem ele toda coleta morre na máquina de quem clona.
+!radar/dados/inep_intermediario.pem
 *.key
 secrets.*
 credenciais.*

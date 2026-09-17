@@ -206,3 +206,50 @@ def test_ranking_ignora_linha_sem_valor():
     assert api._ranking(linhas, "1", "v") == {"posicao": 1, "de": 2}
     assert api._ranking(linhas, "3", "v") == {"posicao": 2, "de": 2}
     assert api._ranking(linhas, "2", "v") is None
+
+
+# Verifica que a comparação devolve os dois municípios, na ordem pedida.
+def test_comparar_devolve_os_dois_na_ordem(cliente):
+    with banco.conecta() as c:
+        banco.grava_casos_dengue(c, [Caso("5200050", 2025, 10)])
+        banco.grava_populacao(c, [Populacao("5200050", 2025, 10000, "estimativa")])
+    r = cliente.get(f"/v1/comparar?a=5200050&b=5208707&chave={CHAVE}")
+    assert r.status_code == 200
+    assert [d["nome"] for d in r.json()["dados"]] == ["Abadia de Goiás", "Goiânia"]
+
+
+# Verifica que cada lado traz valor e posição, que é o que a tela compara.
+def test_comparar_traz_valor_e_posicao_dos_dois(cliente):
+    with banco.conecta() as c:
+        banco.grava_casos_dengue(c, [Caso("5200050", 2025, 10)])
+        banco.grava_populacao(c, [Populacao("5200050", 2025, 10000, "estimativa")])
+    a, b = cliente.get(f"/v1/comparar?a=5208707&b=5200050&chave={CHAVE}").json()["dados"]
+    assert a["indicadores"]["incidencia-dengue"] > b["indicadores"]["incidencia-dengue"]
+    assert (a["posicoes"]["incidencia-dengue"]["posicao"],
+            b["posicoes"]["incidencia-dengue"]["posicao"]) == (1, 2)
+
+
+# Verifica que comparar um município com ele mesmo é recusado, em vez de
+# devolver duas colunas iguais que não comparam nada.
+def test_comparar_o_mesmo_municipio_e_recusado(cliente):
+    r = cliente.get(f"/v1/comparar?a=5208707&b=5208707&chave={CHAVE}")
+    assert r.status_code == 400
+
+
+# Verifica que município inexistente devolve 404, e não uma coluna vazia.
+def test_comparar_com_municipio_inexistente(cliente):
+    r = cliente.get(f"/v1/comparar?a=5208707&b=9999999&chave={CHAVE}")
+    assert r.status_code == 404
+
+
+# Verifica que a comparação precisa de chave, como todo dado da API.
+def test_comparar_sem_chave_e_recusado(cliente):
+    assert cliente.get("/v1/comparar?a=5208707&b=5200050").status_code == 401
+
+
+# Verifica que a ficha de um município continua igual depois de passar a
+# compartilhar o código com a comparação.
+def test_ficha_de_um_continua_igual(cliente):
+    ficha = cliente.get(f"/v1/municipios/5208707?chave={CHAVE}").json()
+    assert ficha["nome"] == "Goiânia"
+    assert set(ficha) >= {"codigo_ibge", "habitantes", "indicadores", "posicoes"}

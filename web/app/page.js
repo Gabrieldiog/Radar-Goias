@@ -94,6 +94,11 @@ export default function Painel() {
         </p>
       </header>
 
+      <p className="atalhos">
+        <Link href="/comparar" className="voltar">Comparar duas cidades</Link>
+        <Link href="/procedencia" className="voltar">De onde veio cada número</Link>
+      </p>
+
       <nav className="abas" aria-label="Escolha da visão">
         {[
           ["mapa", "Onde está"],

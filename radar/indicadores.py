@@ -260,3 +260,47 @@ def serie_ideb(
     with conn.cursor(row_factory=dict_row) as cur:
         return cur.execute(SERIE_IDEB, (etapa, rede, codigo_ibge, codigo_ibge)).fetchall()
 
+
+# cada conjunto de dados aponta para a requisição que o trouxe, então dá para
+# dizer de onde veio, quando e com que resposta o servidor atendeu
+FRESCOR = """
+select t.tabela, t.linhas, c.fonte, c.url, c.status_http, c.bytes, c.executada_em
+from (
+    select 'Casos de dengue' as tabela, count(*)::int as linhas, max(coleta_id) as coleta
+    from caso_dengue
+    union all select 'Leitos da rede estadual', count(*)::int, max(coleta_id) from leito
+    union all select 'Unidades básicas de saúde', count(*)::int, max(coleta_id) from ubs
+    union all select 'Manifestações da ouvidoria', count(*)::int, max(coleta_id) from manifestacao
+    union all select 'Despesa por função', count(*)::int, max(coleta_id) from despesa_funcao
+    union all select 'Ocorrências criminais', count(*)::int, max(coleta_id) from ocorrencia
+    union all select 'Matrículas do censo escolar', count(*)::int, max(coleta_id) from matricula
+    union all select 'IDEB', count(*)::int, max(coleta_id) from ideb
+    union all select 'População', count(*)::int, max(coleta_id) from populacao
+) t
+left join coleta c on c.id = t.coleta
+where t.linhas > 0
+order by c.executada_em desc nulls last
+"""
+
+
+def frescor(conn) -> list[dict]:
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(FRESCOR).fetchall()
+
+
+POR_FONTE = """
+select fonte,
+       count(*)::int as coletas,
+       max(executada_em) as ultima,
+       coalesce(sum(bytes), 0)::bigint as bytes,
+       count(*) filter (where status_http >= 400)::int as recusadas
+from coleta
+group by fonte
+order by max(executada_em) desc
+"""
+
+
+def por_fonte(conn) -> list[dict]:
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(POR_FONTE).fetchall()
+

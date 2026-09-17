@@ -260,7 +260,9 @@ O robots.txt do Tribunal de Contas dos Municípios desaconselha coleta automatiz
 - [x] Eixo educação com o INEP, matrícula como denominador e gasto por aluno
 - [x] IDEB por etapa e rede, com a decomposição entre aprovação e aprendizagem
 - [x] Página própria do município, com os oito indicadores e a posição no ranking
-- [ ] Busca e comparação entre dois municípios
+- [x] Comparação entre dois municípios, lado a lado
+- [x] Registro de procedência visível no painel
+- [x] Sistema completo no Docker, com o painel junto
 - [ ] Publicar o painel na Vercel e a API com o banco na VPS
 
 A ordem de ataque começa pelo portal de Goiás com o IBGE junto, porque é onde a razão entre esforço e resultado é melhor: SQL aberto, dado atualizado diariamente e chave de município limpa. Com essas duas fontes já saem indicadores de saúde e de ouvidoria de verdade.
@@ -287,11 +289,19 @@ Duas coisas que a pesquisa mostrou não valerem o esforço e que já ficam corta
 
 ## Como rodar
 
-O caminho mais curto é `docker compose up -d`. Isso sobe o banco, carrega os dados das fontes públicas e deixa a API respondendo em `http://localhost:8000`. A primeira subida demora alguns minutos, porque a coleta respeita o limite de uma requisição por segundo aos servidores do governo.
+O caminho mais curto é `docker compose up -d`. Isso sobe o banco, a API e o painel, e carrega os dados do núcleo. Em pouco mais de um minuto o painel abre em `http://localhost:3000` e a API responde em `http://localhost:8000`.
 
-A documentação interativa da API fica em `http://localhost:8000/docs`, e a chave de acesso padrão é `demo`. Para usar outra, suba com `RADAR_CHAVES=suachave docker compose up -d`.
+Três fontes ficam fora dessa primeira carga, porque são pesadas e mudam pouco. Rode uma vez cada, na ordem que quiser, e o painel passa a mostrar os cinco eixos completos:
 
-Se a porta 5433 ou a 8000 estiverem ocupadas na sua máquina, troque com `RADAR_PORTA` e `RADAR_PORTA_API`.
+    docker compose exec api python -m radar educacao
+    docker compose exec api python -m radar seguranca
+    docker compose exec api python -m radar financas
+
+A de educação leva cerca de 45 segundos e baixa 91 MB do INEP. A de segurança lê uma planilha que passa de 200 MB descomprimidos. A de finanças é a mais demorada, porque o Tesouro exige um pedido por município e respeitamos o limite de um por segundo.
+
+A documentação interativa da API fica em `http://localhost:8000/docs`, e a chave de acesso padrão é `demo`. Para usar outra, suba com `RADAR_CHAVES=suachave docker compose up -d`. A chave fica só no servidor: o navegador nunca a vê, porque o painel conversa com a API por uma rota interna do próprio Next.
+
+Se as portas 5433, 8000 ou 3000 estiverem ocupadas na sua máquina, troque com `RADAR_PORTA`, `RADAR_PORTA_API` e `RADAR_PORTA_PAINEL`.
 
 ### Rodando sem Docker
 
@@ -305,7 +315,9 @@ A variável `RADAR_BANCO_URL` aponta para o banco, e é a única diferença entr
 
 ### O painel
 
-O painel fica na pasta `web` e é um projeto Next.js separado. Entre nela, instale com `pnpm install` e rode com `pnpm dev`. Ele sobe em `http://localhost:3000`.
+Com o Docker, o painel já sobe junto. Para mexer no código dele, entre na pasta `web`, instale com `pnpm install` e rode com `pnpm dev`, que recarrega a cada alteração.
+
+O painel tem quatro telas: o mapa dos 246 municípios com os indicadores por eixo, a comparação entre duas cidades, a ficha completa de um município e o registro de procedência, que mostra de qual requisição veio cada conjunto de dados.
 
 O navegador nunca fala com a API direto: o painel chama uma rota do próprio Next, que repassa o pedido por trás. Por isso não existe CORS entre as duas metades, e a chave de acesso fica só no servidor, sem chegar ao navegador. As duas variáveis que configuram isso estão em `web/.env.example`.
 

@@ -28,7 +28,14 @@ body {
 .painel { max-width: 1080px; margin: 0 auto; padding: 56px 24px 80px; }
 
 .capa { max-width: 40ch; }
-.capa h1 { font-size: 2.1rem; font-weight: 600; letter-spacing: -0.025em; margin: 0 0 6px; }
+.capa h1 {
+  font-size: 2.1rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  margin: 0 0 6px;
+  max-width: 18ch;
+  text-wrap: balance;
+}
 .tese { margin: 0; color: var(--tinta-suave); font-size: 1.02rem; }
 
 .abas { display: flex; gap: 26px; margin: 36px 0 0; border-bottom: 1px solid var(--linha-forte); }
@@ -270,3 +277,70 @@ body {
   .fichas { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
   .cartao .numero { font-size: 1.5rem; }
 }
+
+.rolagem { overflow-x: auto; }
+
+.duelo { width: 100%; border-collapse: collapse; }
+
+.duelo thead th {
+  text-align: left;
+  font-size: 0.86rem;
+  font-weight: 600;
+  padding: 0 14px 9px 0;
+  border-bottom: 1px solid var(--linha-forte);
+  vertical-align: bottom;
+}
+
+.duelo thead th:first-child { color: var(--tinta-suave); font-weight: 400; font-size: 0.78rem; }
+.duelo thead th a { color: var(--tinta); text-decoration: none; border-bottom: 1px solid var(--linha-forte); }
+.duelo thead th a:hover { color: var(--ouro); border-bottom-color: var(--ouro); }
+
+.duelo tbody th {
+  text-align: left;
+  font-weight: 400;
+  padding: 14px 20px 14px 0;
+  border-bottom: 1px solid var(--linha);
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.duelo tbody th .rotulo { display: block; font-weight: 600; font-size: 0.92rem; }
+.duelo tbody th .unidade { display: block; font-size: 0.78rem; color: var(--tinta-suave); margin-top: 2px; }
+
+.duelo td.lado {
+  width: 34%;
+  padding: 14px 14px 14px 0;
+  border-bottom: 1px solid var(--linha);
+  vertical-align: top;
+}
+
+.duelo .valor {
+  display: block;
+  font-size: 1.24rem;
+  font-weight: 600;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+.duelo .barra { display: block; height: 6px; background: var(--r0); margin: 8px 0 6px; }
+.duelo .barra i { display: block; height: 100%; background: var(--r2); }
+.duelo td.vence .barra i { background: var(--r4); }
+.duelo td.vence .valor { color: var(--tinta); }
+
+.duelo td.vence {
+  box-shadow: inset 3px 0 0 var(--ouro);
+  padding-left: 11px;
+}
+
+.duelo .lugar { display: block; font-size: 0.78rem; color: var(--tinta-suave); }
+
+@media (max-width: 720px) {
+  .duelo .valor { font-size: 1.05rem; }
+  .duelo tbody th { padding-right: 12px; white-space: normal; }
+}
+
+.atalhos { display: flex; flex-wrap: wrap; gap: 10px 22px; margin: 20px 0 0; }
+
+.registro td, .registro th { padding-right: 22px; white-space: nowrap; }
+.registro td:first-child { white-space: normal; }
+.registro .recusa { color: #8c2f18; font-weight: 600; }

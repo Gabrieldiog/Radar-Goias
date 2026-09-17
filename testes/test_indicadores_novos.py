@@ -334,3 +334,36 @@ def test_serie_sem_municipio_e_o_estado(conn):
     nota(conn, codigo="5200050", ideb=7.0)
     serie = indicadores.serie_ideb(conn)
     assert (serie[0]["ideb"], serie[0]["municipios"]) == (6.5, 2)
+
+
+# Verifica que cada conjunto de dados aponta para a requisição que o trouxe, com
+# o endereço e o status que o servidor devolveu. É a promessa de procedência.
+def test_frescor_liga_o_dado_a_requisicao(conn):
+    coleta = banco.grava_coleta(conn, "ckan-go", "https://exemplo.gov.br/x", 200, 4096)
+    banco.grava_casos_dengue(conn, [("5208707", 2025, 100)], coleta)
+    linha = [l for l in indicadores.frescor(conn) if l["tabela"] == "Casos de dengue"][0]
+    assert (linha["linhas"], linha["fonte"], linha["status_http"], linha["bytes"]) == (
+        1, "ckan-go", 200, 4096)
+    assert linha["url"] == "https://exemplo.gov.br/x"
+
+
+# Verifica que conjunto vazio não aparece na lista. Tabela sem linha nenhuma não
+# tem procedência para mostrar, e listar ela como zero confunde com dado velho.
+def test_frescor_omite_conjunto_vazio(conn):
+    coleta = banco.grava_coleta(conn, "ckan-go", "https://exemplo.gov.br/x", 200, 10)
+    banco.grava_casos_dengue(conn, [("5208707", 2025, 100)], coleta)
+    tabelas = {l["tabela"] for l in indicadores.frescor(conn)}
+    assert "Casos de dengue" in tabelas
+    assert "IDEB" not in tabelas
+
+
+# Verifica que o resumo por fonte conta as coletas e marca as recusadas. Foi um
+# 403 do firewall do portal que ensinou o projeto a guardar o status.
+def test_por_fonte_conta_coletas_e_recusas(conn):
+    banco.grava_coleta(conn, "ckan-go", "https://a.gov.br/1", 200, 100)
+    banco.grava_coleta(conn, "ckan-go", "https://a.gov.br/2", 403, 0)
+    banco.grava_coleta(conn, "ibge", "https://b.gov.br/1", 200, 50)
+    por_fonte = {l["fonte"]: l for l in indicadores.por_fonte(conn)}
+    assert (por_fonte["ckan-go"]["coletas"], por_fonte["ckan-go"]["recusadas"]) == (2, 1)
+    assert (por_fonte["ibge"]["coletas"], por_fonte["ibge"]["recusadas"]) == (1, 0)
+    assert por_fonte["ckan-go"]["bytes"] == 100

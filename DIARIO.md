@@ -174,3 +174,29 @@ A posição passou a vir da API, e ela tem um cuidado que parece detalhe e não 
 Goiânia mostra bem para que serve a ficha. Ela é 6ª em leitos entre os 23 que têm, 73ª em dengue entre 246, e a pior do estado em unidades de saúde por habitante. No IDEB fica em 114º de 241, atrás da maioria dos municípios pequenos.
 
 Oito mutações e uma sobreviveu. O teste que dizia proteger o ranking de município sem dado não protegia nada, porque o indicador que usei no cenário nunca devolve linha com valor nulo, então o filtro nunca era exercido. Trocamos por um teste da função direto, com uma linha nula no meio, e agora ele pega.
+
+## Dia 18, 24 de agosto de 2026
+
+Duas cidades agora aparecem lado a lado. Escolhe-se um município de cada lado e os oito indicadores saem na mesma tela, com o valor, uma barra que compara só aquela linha e a posição de cada um entre os 246.
+
+A parte que exigiu decisão foi dizer quem está melhor. Mais leito e mais nota é melhor, mais dengue e mais homicídio é pior, mas gastar mais por morador não é nem uma coisa nem outra. Os três indicadores de gasto entram sem marca de vencedor, de propósito, porque marcar um vencedor ali seria a leitura mais errada possível deste painel, que vem justamente mostrando que dinheiro não prevê resultado.
+
+No servidor, comparar dois municípios custa as mesmas consultas que ver um só. O peso está no indicador, que varre o estado inteiro de qualquer jeito, então os dois saem no mesmo passeio em vez de dobrar o trabalho.
+
+Goiânia contra Aparecida de Goiânia, que é o par que abre a apresentação, fica claro na tela: 130,7 leitos por 100 mil contra 33,7, e IDEB 6,6 contra 5,9.
+
+## Dia 19, 24 de agosto de 2026
+
+O projeto promete desde o primeiro dia que todo número é rastreável até a requisição que o trouxe. Hoje essa promessa virou tela. A página de procedência mostra cada conjunto de dados com o endereço de onde veio, o status que o servidor devolveu, o tamanho da resposta e a data, mais um resumo de quantas vezes batemos em cada porta e quantas foram recusadas.
+
+E a página achou um problema logo que abriu, que é exatamente para isso que ela serve. Quando o arquivo grande já estava baixado, a carga reusava ele e gravava o caminho no disco em vez do endereço de origem. O registro apontava para a máquina de quem rodou. Agora a coleta guarda sempre a URL de origem, e o teste que prova isso passa um cliente nulo, o que também demonstra que o arquivo em cache é reusado sem tocar a rede.
+
+## Dia 20, 24 de agosto de 2026
+
+O sistema inteiro sobe com um comando, e agora isso inclui o painel. Banco, API e painel num `docker compose up -d`, com o painel esperando a API ficar saudável antes de subir.
+
+E aqui apareceu o pior bug que este projeto teve até agora, justamente no requisito que mais importa. O `openpyxl` nunca tinha sido declarado como dependência. Ele entrou no dia 11, junto com a planilha do SINESP, e funcionava na nossa máquina porque estava instalado no ambiente por acaso. Dentro do Docker ele não existia. Desde o dia 11, portanto, o sistema não subia na casa de ninguém, e nós não vimos porque nunca reconstruímos a imagem.
+
+A correção é uma linha, mas o que importa é o que veio junto: um teste que lê o código com AST, junta tudo que ele importa de fora e confere contra o que o `pyproject` declara. Tirar qualquer uma das duas dependências faz ele falhar. Esse teste teria pego o problema no dia em que ele nasceu.
+
+Subimos do zero, com o volume apagado, para conferir de verdade: os três containers de pé, as quatro telas do painel respondendo, a chave de acesso sem aparecer no HTML entregue ao navegador, e os 246 municípios com dado. A carga de educação dentro do container leva 45 segundos, e o certificado intermediário do INEP que guardamos no dia 15 funcionou no Linux do container, que é onde ele mais fazia falta.

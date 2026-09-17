@@ -1,6 +1,7 @@
-# Sobe o Radar inteiro: banco, carga dos dados e API. Um comando só.
+# Sobe o Radar inteiro: banco, carga dos dados, API e painel. Um comando só.
 #   docker compose up -d
-# A API fica em http://localhost:8000 e a chave de acesso é a de RADAR_CHAVES.
+# O painel abre em http://localhost:3000 e a API responde em http://localhost:8000.
+# A chave de acesso é a de RADAR_CHAVES, e ela nunca chega ao navegador.
 services:
   banco:
     image: postgres:16
@@ -25,6 +26,25 @@ services:
       - "${RADAR_PORTA_API:-8000}:8000"
     depends_on:
       banco:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://localhost:8000/saude')
+      interval: 5s
+      retries: 40
+
+  painel:
+    build: ./web
+    environment:
+      RADAR_API_URL: http://api:8000
+      RADAR_CHAVE: ${RADAR_CHAVES:-demo}
+    ports:
+      - "${RADAR_PORTA_PAINEL:-3000}:3000"
+    depends_on:
+      api:
         condition: service_healthy
 
 volumes:

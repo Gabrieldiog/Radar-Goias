@@ -2,6 +2,7 @@
 // resume o que o mapa está mostrando. A frase é calculada do próprio dado.
 export const INDICADORES = {
   "leitos-rede-estadual": {
+    sentido: "maior",
     curto: "leitos por habitante",
     eixo: "Saúde",
     campo: "por_100mil",
@@ -11,6 +12,7 @@ export const INDICADORES = {
       `${total - linhas.length} dos ${total} municípios não têm nenhum leito da rede estadual.`,
   },
   "ubs-por-habitante": {
+    sentido: "maior",
     curto: "unidades de saúde por habitante",
     eixo: "Saúde",
     campo: "por_10mil",
@@ -22,6 +24,7 @@ export const INDICADORES = {
       )} unidade por 10 mil moradores.`,
   },
   "incidencia-dengue": {
+    sentido: "menor",
     curto: "incidência de dengue",
     eixo: "Saúde",
     campo: "por_100k",
@@ -33,6 +36,7 @@ export const INDICADORES = {
       ).toFixed(1).replace('.', ',')} vezes a mediana do estado.`,
   },
   "homicidio-por-100mil": {
+    sentido: "menor",
     curto: "taxa de homicídio",
     eixo: "Segurança",
     campo: "por_100mil",
@@ -44,6 +48,7 @@ export const INDICADORES = {
       } municípios não registraram nenhum homicídio no período.`,
   },
   "gasto-saude-por-habitante": {
+    sentido: "neutro",
     curto: "gasto em saúde por morador",
     eixo: "Dinheiro público",
     campo: "por_habitante",
@@ -55,6 +60,7 @@ export const INDICADORES = {
       ).toFixed(0)} vezes mais por morador que ${linhas[linhas.length - 1].nome}.`,
   },
   "gasto-educacao-por-habitante": {
+    sentido: "neutro",
     curto: "gasto em educação por morador",
     eixo: "Dinheiro público",
     campo: "por_habitante",
@@ -66,6 +72,7 @@ export const INDICADORES = {
       ).toFixed(0)} vezes mais por morador que ${linhas[linhas.length - 1].nome}.`,
   },
   "gasto-educacao-por-aluno": {
+    sentido: "neutro",
     curto: "gasto em educação por aluno",
     eixo: "Educação",
     campo: "por_aluno",
@@ -80,6 +87,7 @@ export const INDICADORES = {
     },
   },
   "ideb-anos-iniciais": {
+    sentido: "maior",
     curto: "IDEB dos anos iniciais",
     eixo: "Educação",
     campo: "ideb",
@@ -94,6 +102,7 @@ export const INDICADORES = {
     },
   },
   "ouvidoria-por-orgao": {
+    sentido: "menor",
     curto: "tempo de resposta da ouvidoria",
     eixo: "Atendimento ao cidadão",
     campo: "tempo_medio",

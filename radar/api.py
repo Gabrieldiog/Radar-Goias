@@ -77,6 +77,16 @@ CATALOGO = {
         "dimensao": "municipio",
         "fontes": ["www.gov.br/mj", "servicodados.ibge.gov.br"],
     },
+    "ideb-anos-iniciais": {
+        "id": "ideb-anos-iniciais",
+        "nome": "IDEB dos anos iniciais na rede municipal",
+        "unidade": "nota de 0 a 10",
+        "formula": "indicador de rendimento multiplicado pela nota média padronizada",
+        "dimensao": "municipio",
+        "etapa": "anos_iniciais",
+        "rede": "municipal",
+        "fontes": ["download.inep.gov.br"],
+    },
     "ouvidoria-por-orgao": {
         "id": "ouvidoria-por-orgao",
         "nome": "Atendimento da ouvidoria por órgão",
@@ -113,6 +123,7 @@ CAMPO = {
     "gasto-saude-por-habitante": "por_habitante",
     "gasto-educacao-por-habitante": "por_habitante",
     "gasto-educacao-por-aluno": "por_aluno",
+    "ideb-anos-iniciais": "ideb",
     "ouvidoria-por-orgao": "tempo_medio",
     "homicidio-por-100mil": "por_100mil",
 }
@@ -123,6 +134,8 @@ def _linhas(conn, indicador_id, ano=None, prazo=30):
         return indicadores.leitos_por_100mil(conn)
     if indicador_id == "ubs-por-habitante":
         return indicadores.ubs_por_10mil(conn)
+    if indicador_id == "ideb-anos-iniciais":
+        return indicadores.ideb_por_municipio(conn, ano=ano)
     if indicador_id == "gasto-educacao-por-aluno":
         return indicadores.gasto_por_aluno(conn)
     if indicador_id.startswith("gasto-"):
@@ -139,6 +152,45 @@ def _do_municipio(linhas, codigo_ibge, campo):
         if l["codigo_ibge"] == codigo_ibge:
             return l[campo]
     return None
+
+
+# as consultas de indicador já voltam ordenadas do maior para o menor, então a
+# posição é o índice; município sem valor fica de fora da contagem, senão a
+# ausência de dado viraria último lugar
+def _ranking(linhas, codigo_ibge, campo):
+    com_valor = [l for l in linhas if l.get(campo) is not None]
+    for posicao, l in enumerate(com_valor, 1):
+        if l["codigo_ibge"] == codigo_ibge:
+            return {"posicao": posicao, "de": len(com_valor)}
+    return None
+
+
+def _cabecalho(conn, codigo_ibge: str) -> dict:
+    with conn.cursor(row_factory=dict_row) as cur:
+        linha = cur.execute(
+            "select m.codigo_ibge, m.nome, p.habitantes, p.ano as ano_populacao"
+            " from municipio m left join populacao p using (codigo_ibge)"
+            " where m.codigo_ibge = %s order by p.ano desc limit 1",
+            (codigo_ibge,),
+        ).fetchone()
+    if not linha:
+        raise HTTPException(404, f"município desconhecido: {codigo_ibge}")
+    return linha
+
+
+# uma consulta por indicador, e não uma por município: o indicador varre o
+# estado inteiro de qualquer jeito, então dois municípios saem no mesmo passeio
+def _ficha(conn, cabecalhos: list[dict]) -> list[dict]:
+    for c in cabecalhos:
+        c["indicadores"], c["posicoes"] = {}, {}
+    for id, meta in CATALOGO.items():
+        if meta["dimensao"] != "municipio":
+            continue
+        linhas = _linhas(conn, id)
+        for c in cabecalhos:
+            c["indicadores"][id] = _do_municipio(linhas, c["codigo_ibge"], CAMPO[id])
+            c["posicoes"][id] = _ranking(linhas, c["codigo_ibge"], CAMPO[id])
+    return cabecalhos
 
 
 def cria_app(limite: str = "60/minute") -> FastAPI:
@@ -162,22 +214,18 @@ def cria_app(limite: str = "60/minute") -> FastAPI:
 
     @app.get("/v1/municipios/{codigo_ibge}")
     def um_municipio(request: Request, codigo_ibge: str, chave: str = Depends(exige_chave)):
-        with banco.conecta() as conn, conn.cursor(row_factory=dict_row) as cur:
-            linha = cur.execute(
-                "select m.codigo_ibge, m.nome, p.habitantes, p.ano as ano_populacao"
-                " from municipio m left join populacao p using (codigo_ibge)"
-                " where m.codigo_ibge = %s order by p.ano desc limit 1",
-                (codigo_ibge,),
-            ).fetchone()
-        if not linha:
-            raise HTTPException(404, f"município desconhecido: {codigo_ibge}")
         with banco.conecta() as conn:
-            linha["indicadores"] = {
-                id: _do_municipio(_linhas(conn, id), codigo_ibge, CAMPO[id])
-                for id, meta in CATALOGO.items()
-                if meta["dimensao"] == "municipio"
-            }
-        return linha
+            return _ficha(conn, [_cabecalho(conn, codigo_ibge)])[0]
+
+    # comparar dois municípios roda as mesmas consultas de um só: o custo está
+    # no indicador, que varre o estado inteiro, e não no município pedido
+    @app.get("/v1/comparar")
+    def compara(request: Request, a: str, b: str, chave: str = Depends(exige_chave)):
+        if a == b:
+            raise HTTPException(400, "escolha dois municípios diferentes")
+        with banco.conecta() as conn:
+            fichas = _ficha(conn, [_cabecalho(conn, a), _cabecalho(conn, b)])
+        return {"dados": fichas, "total": len(fichas)}
 
     @app.get("/v1/malha")
     def contorno(request: Request, chave: str = Depends(exige_chave)):
@@ -194,6 +242,30 @@ def cria_app(limite: str = "60/minute") -> FastAPI:
         with banco.conecta() as conn:
             linhas = indicadores.serie_dengue(conn, municipio)
         return {"dados": linhas, "total": len(linhas)}
+
+    # a série do IDEB traz as duas metades da nota, para o painel poder mostrar
+    # se o município subiu por aprovar mais ou por aprender mais
+    @app.get("/v1/series/ideb")
+    def serie_ideb(
+        request: Request,
+        municipio: str | None = None,
+        etapa: str = "anos_iniciais",
+        rede: str = "municipal",
+        chave: str = Depends(exige_chave),
+    ):
+        with banco.conecta() as conn:
+            linhas = indicadores.serie_ideb(conn, municipio, etapa, rede)
+        return {"dados": linhas, "total": len(linhas), "fontes": ["download.inep.gov.br"]}
+
+    # a promessa do projeto é que todo número é rastreável até a requisição que
+    # o trouxe, e esta rota é onde essa promessa fica conferível
+    @app.get("/v1/procedencia")
+    def procedencia(request: Request, chave: str = Depends(exige_chave)):
+        with banco.conecta() as conn:
+            return {
+                "conjuntos": indicadores.frescor(conn),
+                "fontes": indicadores.por_fonte(conn),
+            }
 
     @app.get("/v1/indicadores")
     def catalogo(request: Request, chave: str = Depends(exige_chave)):

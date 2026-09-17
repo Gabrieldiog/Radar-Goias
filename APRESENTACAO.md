@@ -6,7 +6,7 @@
 
 **O que ele propõe.** Cada órgão publica do seu jeito, então ninguém consegue comparar nada. O estado publica quantos leitos de hospital estão ocupados, mas não diz em qual município fica cada hospital. A gente descobriu isso pelo cadastro nacional de saúde e cruzou com a população do IBGE. Aí apareceu que só 23 dos 246 municípios têm leito da rede estadual, e que Aparecida de Goiânia tem quatro vezes menos leitos por pessoa que Goiânia, que fica do lado.
 
-**O que fizemos.** Testamos 17 fontes públicas, uma por uma, e descartamos quatro que não serviam. Depois construímos o sistema todo, da coleta até a API, com 140 testes automáticos. E o painel, que é onde isso vira coisa de olhar.
+**O que fizemos.** Testamos 17 fontes públicas, uma por uma, e descartamos quatro que não serviam. Depois construímos o sistema todo, da coleta até a API, com 203 testes automáticos. E o painel, que é onde isso vira coisa de olhar.
 
 **Como funciona.** O `http` busca nos sites do governo, a pasta `fontes` traduz cada resposta, o `municipios` padroniza a chave, que é por onde as fontes se cruzam, o `banco` guarda, o `indicadores` faz a conta e o `api` entrega para fora, com chave de acesso.
 
@@ -40,7 +40,7 @@ Cada fonte tem seu arquivo que sabe pedir e traduzir, o sistema recusa resposta 
 
 ## Demonstração ao vivo
 
-**1.** `pytest` mostra os 140 testes passando em 3 segundos.
+**1.** `pytest` mostra os 203 testes passando em 5 segundos.
 
 **2.** `python -m radar` busca os dados e enche o banco. Leva cerca de um minuto, porque consulta o cadastro de cada hospital respeitando o limite de um pedido por segundo.
 

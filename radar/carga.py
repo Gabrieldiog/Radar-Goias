@@ -3,7 +3,7 @@ from pathlib import Path
 from urllib.parse import quote
 
 from radar import banco, municipios
-from radar.fontes import ckan_go, ibge, inep, ms_cnes, siconfi, sinesp
+from radar.fontes import ckan_go, ibge, ideb, inep, ms_cnes, siconfi, sinesp
 
 
 def executa(conn, cliente) -> dict:
@@ -90,17 +90,8 @@ def executa_seguranca(conn, cliente, ano: int = 2026, caminho=None) -> dict:
     """
     banco.aplica_esquema(conn)
     banco.carrega_municipios(conn)
-    if caminho is None:
-        caminho = Path(tempfile.gettempdir()) / f"sinesp{ano}.xlsx"
-        if not caminho.exists():
-            resposta = cliente.arquivo(sinesp.url_planilha(ano), caminho)
-            coleta = banco.grava_coleta(
-                conn, "sinesp", resposta.url, resposta.status, resposta.bytes
-            )
-        else:
-            coleta = banco.grava_coleta(conn, "sinesp", str(caminho), 200, caminho.stat().st_size)
-    else:
-        coleta = banco.grava_coleta(conn, "sinesp", str(caminho), 200, Path(caminho).stat().st_size)
+    caminho = caminho or Path(tempfile.gettempdir()) / f"sinesp{ano}.xlsx"
+    coleta = _baixa_uma_vez(conn, cliente, "sinesp", sinesp.url_planilha(ano), caminho, 1)
     ocorrencias = sinesp.le_planilha(caminho)
     return {
         "ocorrencias": banco.grava_ocorrencias(conn, ocorrencias, coleta),
@@ -116,19 +107,42 @@ def executa_educacao(conn, cliente, ano: int = 2024, caminho=None) -> dict:
     """
     banco.aplica_esquema(conn)
     banco.carrega_municipios(conn)
-    if caminho is None:
-        caminho = Path(tempfile.gettempdir()) / f"censo{ano}.zip"
-        if not caminho.exists():
-            resposta = cliente.arquivo(inep.url_censo(ano), caminho, tentativas=4)
-            coleta = banco.grava_coleta(
-                conn, "inep", resposta.url, resposta.status, resposta.bytes
-            )
-        else:
-            coleta = banco.grava_coleta(conn, "inep", str(caminho), 200, caminho.stat().st_size)
-    else:
-        coleta = banco.grava_coleta(conn, "inep", str(caminho), 200, Path(caminho).stat().st_size)
+    caminho = caminho or Path(tempfile.gettempdir()) / f"censo{ano}.zip"
+    coleta = _baixa_uma_vez(conn, cliente, "inep", inep.url_censo(ano), caminho)
     matriculas = inep.le_censo(caminho)
     return {
         "matriculas": banco.grava_matriculas(conn, matriculas, coleta),
         "alunos": sum(m.alunos for m in matriculas),
     }
+
+
+def _baixa_uma_vez(conn, cliente, fonte, url, caminho, tentativas=4) -> int:
+    """Reusa o arquivo já baixado, para não pedir de novo o mesmo ao servidor.
+
+    A coleta guarda sempre o endereço de origem, e nunca o caminho no disco: o
+    arquivo em cache veio daquela URL, e gravar o caminho local faria a página
+    de procedência apontar para a máquina de quem rodou, em vez da fonte.
+    """
+    if Path(caminho).exists():
+        return banco.grava_coleta(conn, fonte, url, 200, Path(caminho).stat().st_size)
+    resposta = cliente.arquivo(url, caminho, tentativas=tentativas)
+    return banco.grava_coleta(conn, fonte, resposta.url, resposta.status, resposta.bytes)
+
+
+def executa_ideb(conn, cliente, ano: int = 2025, pasta=None) -> dict:
+    """Baixa as três planilhas do IDEB e grava as notas de Goiás.
+
+    São três arquivos, um por etapa, somando 58 MB, e o IDEB sai a cada dois
+    anos, então isso não entra na carga de todo dia.
+    """
+    banco.aplica_esquema(conn)
+    banco.carrega_municipios(conn)
+    pasta = Path(pasta or tempfile.gettempdir())
+    gravadas, etapas = 0, {}
+    for etapa in ideb.ETAPAS:
+        caminho = pasta / f"{ideb.ETAPAS[etapa]}_{ano}.zip"
+        coleta = _baixa_uma_vez(conn, cliente, "inep-ideb", ideb.url_ideb(etapa, ano), caminho)
+        notas = ideb.le_ideb(caminho, etapa)
+        etapas[etapa] = len(notas)
+        gravadas += banco.grava_ideb(conn, notas, coleta)
+    return {"ideb": gravadas, **etapas}

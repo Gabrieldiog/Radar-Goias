@@ -15,7 +15,8 @@ def main() -> int:
         return 0
     if len(sys.argv) > 1 and sys.argv[1] == "educacao":
         with banco.conecta() as conn:
-            resumo = carga.executa_educacao(conn, Cliente())
+            cliente = Cliente()
+            resumo = carga.executa_educacao(conn, cliente) | carga.executa_ideb(conn, cliente)
         for chave, valor in resumo.items():
             print(f"{chave}: {valor}")
         return 0

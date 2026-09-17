@@ -1,3 +1,4 @@
+import ssl
 import httpx
 import pytest
 
@@ -123,3 +124,23 @@ def test_arquivo_nao_repete_por_padrao(relogio, tmp_path):
     with pytest.raises(httpx.ConnectError):
         cliente(relogio, queda).arquivo("https://x.gov.br/a.zip", tmp_path / "a.zip")
     assert queda.chamadas == 1
+
+
+# Verifica que o intermediário do INEP viaja junto do código. Sem ele o Python
+# recusa a conexão, porque o servidor manda só o certificado da ponta.
+def test_intermediario_do_inep_acompanha_o_codigo():
+    from radar.http import INTERMEDIARIO, confianca
+
+    assert INTERMEDIARIO.exists()
+    nomes = [dict(x for par in c["subject"] for x in par) for c in confianca().get_ca_certs()]
+    assert any("RNP ICPEdu" in n.get("commonName", "") for n in nomes)
+
+
+# Verifica que a raiz pública continua valendo. Adicionar o intermediário não
+# pode virar desculpa para trocar a verificação por um contexto permissivo.
+def test_confianca_continua_verificando():
+    from radar.http import confianca
+
+    contexto = confianca()
+    assert contexto.verify_mode == ssl.CERT_REQUIRED
+    assert contexto.check_hostname is True

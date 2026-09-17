@@ -142,3 +142,96 @@ O resultado carrega os dois anos que o produziram, o exercício da despesa e o a
 O despacho da API precisou de cuidado. Já existia gasto em educação por habitante, e o novo é gasto em educação por aluno. Os dois começam igual, e a regra que separava indicador por prefixo mandaria o novo para a rota antiga, devolvendo o número errado com status 200. Escrevemos o teste que prova a separação antes de confiar nela.
 
 Cinco mutações, e três sobreviveram na primeira rodada. Duas eram falha de teste de verdade. A que tirava o filtro de rede passou porque o teste olhava só a primeira linha do resultado, e a linha certa continuava em primeiro; agora ele exige que exista uma linha só. A que trocava o censo mais recente pelo mais antigo passou porque o teste tinha um ano só cadastrado, exatamente o erro que já tínhamos cometido com a população no dia 4; agora ele cadastra dois anos. A terceira era mutação equivalente, sem efeito, e a rodada seguinte confirmou isso.
+
+## Dia 15, 23 de agosto de 2026
+
+O IDEB entrou, e com ele o eixo educação ficou completo. São três planilhas do INEP, uma por etapa, somando 58 MB, e 14.295 notas de Goiás guardadas, cobrindo onze medições de 2005 a 2025.
+
+A planilha é larga do jeito que planilha feita para gente ler costuma ser: cada ano é uma coluna, e são 133 delas. O código transforma isso em uma linha por ano, que é a forma que o banco e o gráfico precisam. As três armadilhas que a pesquisa tinha anotado estavam todas lá. O cabeçalho de máquina está na linha 10, porque as nove primeiras são título e legenda. Ausência de medida é escrita como um traço, e virar zero seria dizer que o município tirou a pior nota possível. E a rede "Pública" é o agregado das outras, então ela entra com nome próprio e nunca é somada junto.
+
+Uma quarta armadilha a pesquisa não tinha visto: existem quatro redes em Goiás, e não três. Há uma escola federal.
+
+O problema do dia foi de rede, não de dado. O download morria com erro de certificado, mesmo o curl funcionando na mesma URL. O servidor do INEP manda só o certificado da ponta e omite o intermediário, e o curl no macOS disfarça porque vai buscar o que falta sozinho, enquanto o Python não vai. A saída fácil seria desligar a verificação, e a saída certa foi baixar o intermediário do endereço que o próprio certificado indica, conferir que ele é assinado por uma raiz que o Python já confiava, e deixá-lo viajar junto do código. A cadeia fecha com a verificação inteira ligada, e isso vale também para o Docker, onde o sistema operacional não teria esse certificado guardado.
+
+Guardamos as duas metades que formam a nota, e não só a nota. Cinco mutações, todas pegas.
+
+## Dia 16, 23 de agosto de 2026
+
+A nota virou indicador e virou gráfico, e o gráfico descobriu sozinho uma coisa que o número do IDEB esconde.
+
+O IDEB é o produto de duas medidas que o INEP publica separadas: quanto se aprova e quanto se aprende. O painel mostra as duas embaixo das barras, e a frase do topo procura o ano em que a nota caiu e diz de onde veio a queda. Em Goiás ela aponta para 2021: a nota caiu de 6,1 para 5,8, mas a aprovação subiu, de 97% para 98%. Ou seja, aprovou mais e aprendeu menos. É a pandemia aparecendo na decomposição, e é uma leitura que a nota sozinha não entrega.
+
+Tem outra coisa nesse mesmo gráfico. A aprovação saiu de 85% em 2005 e chegou a 99% em 2025, o que quer dizer que ela está no teto. De agora em diante, quase todo ganho de IDEB em Goiás tem que vir de aprendizagem, porque do outro lado não sobrou espaço.
+
+Escolhemos anos iniciais na rede municipal de propósito, e o dado justifica: 241 dos 246 municípios têm rede própria nos anos iniciais, contra 3 no ensino médio, que é do estado. Comparar o gasto do município com uma etapa que ele não comanda seria cobrar dele o resultado de outro.
+
+## Dia 17, 23 de agosto de 2026
+
+O município ganhou página própria. Antes dava para clicar no mapa e ver um número; agora `/municipio/5208707` abre a ficha inteira, com os oito indicadores agrupados por eixo, a posição de cada um no ranking estadual e a série do IDEB daquele município.
+
+A posição passou a vir da API, e ela tem um cuidado que parece detalhe e não é: município sem dado publicado fica de fora da contagem, em vez de aparecer em último lugar. Não ter leito cadastrado é diferente de ser o pior em leitos.
+
+Goiânia mostra bem para que serve a ficha. Ela é 6ª em leitos entre os 23 que têm, 73ª em dengue entre 246, e a pior do estado em unidades de saúde por habitante. No IDEB fica em 114º de 241, atrás da maioria dos municípios pequenos.
+
+Oito mutações e uma sobreviveu. O teste que dizia proteger o ranking de município sem dado não protegia nada, porque o indicador que usei no cenário nunca devolve linha com valor nulo, então o filtro nunca era exercido. Trocamos por um teste da função direto, com uma linha nula no meio, e agora ele pega.
+
+## Dia 18, 24 de agosto de 2026
+
+Duas cidades agora aparecem lado a lado. Escolhe-se um município de cada lado e os oito indicadores saem na mesma tela, com o valor, uma barra que compara só aquela linha e a posição de cada um entre os 246.
+
+A parte que exigiu decisão foi dizer quem está melhor. Mais leito e mais nota é melhor, mais dengue e mais homicídio é pior, mas gastar mais por morador não é nem uma coisa nem outra. Os três indicadores de gasto entram sem marca de vencedor, de propósito, porque marcar um vencedor ali seria a leitura mais errada possível deste painel, que vem justamente mostrando que dinheiro não prevê resultado.
+
+No servidor, comparar dois municípios custa as mesmas consultas que ver um só. O peso está no indicador, que varre o estado inteiro de qualquer jeito, então os dois saem no mesmo passeio em vez de dobrar o trabalho.
+
+Goiânia contra Aparecida de Goiânia, que é o par que abre a apresentação, fica claro na tela: 130,7 leitos por 100 mil contra 33,7, e IDEB 6,6 contra 5,9.
+
+## Dia 19, 24 de agosto de 2026
+
+O projeto promete desde o primeiro dia que todo número é rastreável até a requisição que o trouxe. Hoje essa promessa virou tela. A página de procedência mostra cada conjunto de dados com o endereço de onde veio, o status que o servidor devolveu, o tamanho da resposta e a data, mais um resumo de quantas vezes batemos em cada porta e quantas foram recusadas.
+
+E a página achou um problema logo que abriu, que é exatamente para isso que ela serve. Quando o arquivo grande já estava baixado, a carga reusava ele e gravava o caminho no disco em vez do endereço de origem. O registro apontava para a máquina de quem rodou. Agora a coleta guarda sempre a URL de origem, e o teste que prova isso passa um cliente nulo, o que também demonstra que o arquivo em cache é reusado sem tocar a rede.
+
+## Dia 20, 24 de agosto de 2026
+
+O sistema inteiro sobe com um comando, e agora isso inclui o painel. Banco, API e painel num `docker compose up -d`, com o painel esperando a API ficar saudável antes de subir.
+
+E aqui apareceu o pior bug que este projeto teve até agora, justamente no requisito que mais importa. O `openpyxl` nunca tinha sido declarado como dependência. Ele entrou no dia 11, junto com a planilha do SINESP, e funcionava na nossa máquina porque estava instalado no ambiente por acaso. Dentro do Docker ele não existia. Desde o dia 11, portanto, o sistema não subia na casa de ninguém, e nós não vimos porque nunca reconstruímos a imagem.
+
+A correção é uma linha, mas o que importa é o que veio junto: um teste que lê o código com AST, junta tudo que ele importa de fora e confere contra o que o `pyproject` declara. Tirar qualquer uma das duas dependências faz ele falhar. Esse teste teria pego o problema no dia em que ele nasceu.
+
+Subimos do zero, com o volume apagado, para conferir de verdade: os três containers de pé, as quatro telas do painel respondendo, a chave de acesso sem aparecer no HTML entregue ao navegador, e os 246 municípios com dado. A carga de educação dentro do container leva 45 segundos, e o certificado intermediário do INEP que guardamos no dia 15 funcionou no Linux do container, que é onde ele mais fazia falta.
+
+## Dia 21, 25 de agosto de 2026
+
+O painel ganhou um desenho de verdade, e não um retoque.
+
+Antes, tudo na tela tinha mais ou menos o mesmo peso: título, botões, frase, mapa. Agora existe hierarquia. Uma faixa escura abre todas as telas, com a marca, os atalhos e o título grande. Entraram duas famílias tipográficas novas junto da que já havia: uma de display, que carrega personalidade, e uma monoespaçada para número e rótulo, que é o registro certo para um projeto que fala de código IBGE e status HTTP.
+
+A frase que cada visão calcula do próprio dado virou manchete, no maior corpo da página depois do título. Era a coisa mais valiosa do painel e estava no tamanho de uma legenda.
+
+O acréscimo que mais mudou a leitura foi uma faixa com 246 quadrinhos, um por município, do maior para o menor. É a única tela que mostra os 246 de uma vez e responde de relance a pergunta que este projeto mais repete: quantos ficaram de fora? Em leitos, 223 dos quadrinhos aparecem vazios. A frase já dizia isso, mas ver é outra coisa.
+
+Dois cuidados de sentido, e não de gosto. Os quadrinhos sem dado usam a mesma hachura que o mapa usa para sem dado, então "não existe este número aqui" tem uma linguagem só no painel inteiro. E o tom mais claro da rampa foi escurecido, porque no papel novo ele quase sumia, e município de valor baixo parecia buraco no mapa em vez de dado.
+
+As quatro telas passaram a compartilhar o mesmo cabeçalho num componente só, para o desenho não se soltar de uma página para a outra. O painel inteiro foi reconstruído no Docker e conferido ali, que é onde o professor vai ver.
+
+## Dia 22, 26 de agosto de 2026
+
+O painel quebrou na tela, e o erro apontava para o lugar errado.
+
+A mensagem dizia que a frase da ouvidoria tentou reduzir uma lista vazia. Só que a lista não estava vazia: a API devolvia 51 órgãos, 26 deles com mais de cem manifestações. O problema era outro, e mais feio.
+
+Quando se troca de indicador, o nome do escolhido muda na hora, mas os dados só chegam depois. Existe um quadro, um só, em que a tela roda a receita do indicador novo em cima das linhas do indicador velho. Ao ir de Leitos para Ouvidoria, a frase procurava tempo de resposta em linhas de leito, não achava nada, e estourava. Isso valia para todos os indicadores: os outros não quebravam, apenas mostravam o número errado por um instante, que é pior porque ninguém vê.
+
+A correção é estrutural. A resposta passou a dizer de qual indicador ela é, e a tela só desenha quando os dois batem. O mesmo vale para o cruzamento, que tinha exatamente o mesmo descompasso entre os dois eixos escolhidos e os pontos já carregados.
+
+Por cima disso veio uma segunda camada: cada frase agora aguenta receber menos linha do que espera e devolve um texto avisando, em vez de derrubar a página inteira. Conferimos as nove frases de três jeitos, com dado de verdade, com lista vazia e alimentadas de propósito com as linhas do indicador errado. Nenhuma quebra.
+
+E aí o conserto encontrou um terceiro bug, que estava escondido desde o dia 16. A consulta do IDEB não devolvia população, então clicar num município com o IDEB escolhido quebrava a ficha. Nunca tínhamos clicado nessa combinação. A primeira tentativa de correção juntou população à consulta e um teste antigo falhou na hora, com razão: com junção exigida, município sem população cadastrada sumiria do IDEB, e a nota do IDEB não se divide por habitante nenhum. Virou junção opcional, e a ficha passou a aguentar município sem população. Entrou também um teste de contrato que percorre o catálogo inteiro e exige que todo indicador de município devolva habitantes. É o teste que teria pego isso no dia 16.
+
+Fechamos com uma busca no ranking, que ignora acento, porque quem digita rápido escreve goiania e espera achar Goiânia, que é a mesma normalização que o sistema já faz para cruzar as fontes. A posição continua vindo da lista inteira, para filtrar não renumerar o ranking.
+
+Fechamos o dia com duas melhorias na faixa dos 246. Cada quadrinho passou a mostrar as iniciais do município, que não servem como identificador, porque três letras não separam Goiânia de Goianira, mas servem como pista, com o nome inteiro no tooltip. E os municípios sem dado deixaram de ser quadrinhos anônimos: agora eles vêm da lista completa dos 246, com nome e clique, porque município sem dado é município do mesmo jeito.
+
+A lista deixou de ser estática. Clicar no mapa ou num quadrinho rola o ranking até aquele município. Isso exigiu uma correção que parece detalhe: sem `position` na lista, a posição do item é medida a partir do corpo da página inteira, e a rolagem erra o alvo. E clicar no mapa com um filtro de busca ligado passou a limpar o filtro, porque senão a tela esconderia justamente quem foi clicado.
+

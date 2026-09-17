@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  /* config options here */
+  // empacota o servidor e só o que ele usa, para a imagem do Docker não
+  // carregar node_modules inteiro
+  output: "standalone",
 };
 
 export default nextConfig;

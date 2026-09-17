@@ -65,3 +65,31 @@ def test_fonte_incompleta_nao_grava_nada(conn):
     with pytest.raises(Exception):
         carga.executa(conn, c)
     assert conn.execute("select count(*) from populacao").fetchone()[0] == 0
+
+
+# Verifica que a coleta guarda o endereço de origem, e não o caminho do arquivo
+# no disco. A página de procedência mostrou esse bug: reusar o arquivo baixado
+# fazia o registro apontar para a máquina de quem rodou, em vez da fonte.
+def test_arquivo_reusado_guarda_a_origem_e_nao_o_caminho(conn, tmp_path):
+    arquivo = tmp_path / "ja_baixado.zip"
+    arquivo.write_bytes(b"x" * 500)
+    url = "https://download.inep.gov.br/dados_abertos/microdados_censo_escolar_2024.zip"
+    # cliente None prova que o arquivo em disco é reusado sem tocar a rede
+    coleta = carga._baixa_uma_vez(conn, None, "inep", url, arquivo)
+    linha = conn.execute(
+        "select fonte, url, status_http, bytes from coleta where id = %s", (coleta,)
+    ).fetchone()
+    assert linha == ("inep", url, 200, 500)
+
+
+# Verifica que, quando o arquivo não existe, quem manda é a resposta do servidor.
+def test_arquivo_novo_guarda_o_que_o_servidor_respondeu(conn, tmp_path):
+    destino = tmp_path / "novo.zip"
+    cliente = Cliente(
+        transport=httpx.MockTransport(lambda req: httpx.Response(200, content=b"abc")),
+        dorme=lambda s: None,
+    )
+    coleta = carga._baixa_uma_vez(conn, cliente, "inep", "https://x.gov.br/a.zip", destino)
+    linha = conn.execute("select url, bytes from coleta where id = %s", (coleta,)).fetchone()
+    assert linha == ("https://x.gov.br/a.zip", 3)
+    assert destino.read_bytes() == b"abc"

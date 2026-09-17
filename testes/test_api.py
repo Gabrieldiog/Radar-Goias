@@ -70,6 +70,7 @@ def test_catalogo_lista_o_indicador(cliente):
         "gasto-saude-por-habitante",
         "gasto-educacao-por-habitante",
         "gasto-educacao-por-aluno",
+        "ideb-anos-iniciais",
         "homicidio-por-100mil",
     }
 
@@ -174,3 +175,104 @@ def test_gasto_por_aluno_nao_e_confundido_com_por_habitante(cliente):
     assert linha["por_aluno"] == pytest.approx(10000.0)
     assert "por_habitante" not in linha
     assert "download.inep.gov.br" in r.json()["meta"]["fontes"]
+
+
+# Verifica que a ficha diz em que posição o município está, e de quantos.
+def test_ficha_traz_a_posicao_no_ranking(cliente):
+    with banco.conecta() as c:
+        banco.grava_casos_dengue(c, [Caso("5200050", 2025, 10)])
+        banco.grava_populacao(c, [Populacao("5200050", 2025, 10000, "estimativa")])
+    ficha = cliente.get(f"/v1/municipios/5208707?chave={CHAVE}").json()
+    assert ficha["posicoes"]["incidencia-dengue"] == {"posicao": 1, "de": 2}
+
+
+# Verifica que indicador sem valor para aquele município não vira último lugar.
+# Sem dado é diferente de estar no fim da fila.
+def test_sem_dado_nao_vira_ultima_posicao(cliente):
+    ficha = cliente.get(f"/v1/municipios/5208707?chave={CHAVE}").json()
+    assert ficha["indicadores"]["leitos-rede-estadual"] is None
+    assert ficha["posicoes"]["leitos-rede-estadual"] is None
+
+
+# Verifica direto na função: linha sem valor sai da contagem e não empurra os
+# outros para trás. O teste de ponta a ponta não pegava isso, porque o indicador
+# que eu usei lá não devolve linha com valor nulo.
+def test_ranking_ignora_linha_sem_valor():
+    linhas = [
+        {"codigo_ibge": "1", "v": 10.0},
+        {"codigo_ibge": "2", "v": None},
+        {"codigo_ibge": "3", "v": 5.0},
+    ]
+    assert api._ranking(linhas, "1", "v") == {"posicao": 1, "de": 2}
+    assert api._ranking(linhas, "3", "v") == {"posicao": 2, "de": 2}
+    assert api._ranking(linhas, "2", "v") is None
+
+
+# Verifica que a comparação devolve os dois municípios, na ordem pedida.
+def test_comparar_devolve_os_dois_na_ordem(cliente):
+    with banco.conecta() as c:
+        banco.grava_casos_dengue(c, [Caso("5200050", 2025, 10)])
+        banco.grava_populacao(c, [Populacao("5200050", 2025, 10000, "estimativa")])
+    r = cliente.get(f"/v1/comparar?a=5200050&b=5208707&chave={CHAVE}")
+    assert r.status_code == 200
+    assert [d["nome"] for d in r.json()["dados"]] == ["Abadia de Goiás", "Goiânia"]
+
+
+# Verifica que cada lado traz valor e posição, que é o que a tela compara.
+def test_comparar_traz_valor_e_posicao_dos_dois(cliente):
+    with banco.conecta() as c:
+        banco.grava_casos_dengue(c, [Caso("5200050", 2025, 10)])
+        banco.grava_populacao(c, [Populacao("5200050", 2025, 10000, "estimativa")])
+    a, b = cliente.get(f"/v1/comparar?a=5208707&b=5200050&chave={CHAVE}").json()["dados"]
+    assert a["indicadores"]["incidencia-dengue"] > b["indicadores"]["incidencia-dengue"]
+    assert (a["posicoes"]["incidencia-dengue"]["posicao"],
+            b["posicoes"]["incidencia-dengue"]["posicao"]) == (1, 2)
+
+
+# Verifica que comparar um município com ele mesmo é recusado, em vez de
+# devolver duas colunas iguais que não comparam nada.
+def test_comparar_o_mesmo_municipio_e_recusado(cliente):
+    r = cliente.get(f"/v1/comparar?a=5208707&b=5208707&chave={CHAVE}")
+    assert r.status_code == 400
+
+
+# Verifica que município inexistente devolve 404, e não uma coluna vazia.
+def test_comparar_com_municipio_inexistente(cliente):
+    r = cliente.get(f"/v1/comparar?a=5208707&b=9999999&chave={CHAVE}")
+    assert r.status_code == 404
+
+
+# Verifica que a comparação precisa de chave, como todo dado da API.
+def test_comparar_sem_chave_e_recusado(cliente):
+    assert cliente.get("/v1/comparar?a=5208707&b=5200050").status_code == 401
+
+
+# Verifica que a ficha de um município continua igual depois de passar a
+# compartilhar o código com a comparação.
+def test_ficha_de_um_continua_igual(cliente):
+    ficha = cliente.get(f"/v1/municipios/5208707?chave={CHAVE}").json()
+    assert ficha["nome"] == "Goiânia"
+    assert set(ficha) >= {"codigo_ibge", "habitantes", "indicadores", "posicoes"}
+
+
+# Verifica o contrato que o painel depende: todo indicador de município devolve
+# habitantes junto do valor. Sem isso a ficha quebra ao clicar num município, e
+# foi assim que o IDEB entrou quebrado sem ninguém notar.
+def test_todo_indicador_de_municipio_devolve_habitantes(cliente):
+    with banco.conecta() as c:
+        banco.grava_ubs(c, [("5208707", 150)])
+        banco.grava_leitos(c, [("5208707", "0000001", "UTI", "2026-01-01", 10, 5)])
+        banco.grava_despesas(c, [("5208707", 2025, "educacao", 1000000, 1000000)])
+        banco.grava_despesas(c, [("5208707", 2025, "saude", 1000000, 1000000)])
+        banco.grava_matriculas(c, [("5208707", 2024, "municipal", 3, 100)])
+        banco.grava_ideb(c, [("5208707", 2025, "anos_iniciais", "municipal", 6.6, 6.1, 0.99, 6.66)])
+        banco.grava_ocorrencias(c, [("5208707", 2026, 1, "Homicídio doloso", "Estadual", 4)])
+    for id, meta in api.CATALOGO.items():
+        if meta["dimensao"] != "municipio":
+            continue
+        dados = cliente.get(f"/v1/indicadores/{id}?chave={CHAVE}").json()["dados"]
+        assert dados, f"{id} não devolveu linha nenhuma no cenário do teste"
+        goiania = [l for l in dados if l["codigo_ibge"] == "5208707"]
+        assert goiania, f"{id} perdeu o município do cenário"
+        assert goiania[0].get("habitantes"), f"{id} não devolve habitantes"
+        assert goiania[0].get("ano_populacao"), f"{id} não diz de que ano é a população"

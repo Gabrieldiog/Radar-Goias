@@ -149,3 +149,18 @@ def grava_matriculas(conn, linhas, coleta_id=None) -> int:
         linhas,
     )
     return len(linhas)
+
+
+def grava_ideb(conn, linhas, coleta_id=None) -> int:
+    linhas = [(*i, coleta_id) for i in linhas]
+    conn.cursor().executemany(
+        "insert into ideb"
+        " (codigo_ibge, ano, etapa, rede, ideb, meta, rendimento, nota, coleta_id)"
+        " values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        " on conflict (codigo_ibge, ano, etapa, rede) do update set"
+        " ideb = excluded.ideb, meta = excluded.meta, rendimento = excluded.rendimento,"
+        " nota = excluded.nota, coleta_id = excluded.coleta_id",
+        linhas,
+    )
+    return len(linhas)
+

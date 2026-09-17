@@ -208,3 +208,109 @@ def gasto_por_aluno(
         ano_censo = conn.execute("select max(ano) from matricula").fetchone()[0]
     with conn.cursor(row_factory=dict_row) as cur:
         return cur.execute(GASTO_POR_ALUNO, (base, exercicio, ano_censo)).fetchall()
+
+
+# anos iniciais na rede municipal é o recorte que o município de fato comanda:
+# 241 dos 246 têm rede municipal aqui, contra 3 no ensino médio, que é do estado
+IDEB_POR_MUNICIPIO = """
+with pop as (
+    select distinct on (codigo_ibge) codigo_ibge, ano, habitantes, base
+    from populacao where base = %s order by codigo_ibge, ano desc
+)
+select i.codigo_ibge, m.nome, i.ano, i.etapa, i.rede,
+       i.ideb::float8, i.meta::float8, i.rendimento::float8, i.nota::float8,
+       case when i.meta is null then null else i.ideb >= i.meta end as bateu_meta,
+       p.habitantes, p.ano as ano_populacao, p.base as base_populacional
+from ideb i
+join municipio m using (codigo_ibge)
+left join pop p using (codigo_ibge)
+where i.etapa = %s and i.rede = %s and i.ano = %s
+order by i.ideb desc
+"""
+
+
+def ideb_por_municipio(
+    conn,
+    etapa: str = "anos_iniciais",
+    rede: str = "municipal",
+    ano: int | None = None,
+    base: str = "estimativa",
+) -> list[dict]:
+    if ano is None:
+        ano = conn.execute(
+            "select max(ano) from ideb where etapa = %s and rede = %s", (etapa, rede)
+        ).fetchone()[0]
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(IDEB_POR_MUNICIPIO, (base, etapa, rede, ano)).fetchall()
+
+
+# o IDEB é o produto de duas coisas, e a fonte publica as duas separadas: o
+# rendimento diz quanto se aprova e a nota diz quanto se aprende, então dá para
+# ver se o município subiu porque reprova menos ou porque ensina mais
+SERIE_IDEB = """
+select ano, etapa, rede,
+       round(avg(ideb), 2)::float8 as ideb,
+       round(avg(meta), 2)::float8 as meta,
+       round(avg(rendimento), 4)::float8 as rendimento,
+       round(avg(nota), 2)::float8 as nota,
+       count(*)::int as municipios
+from ideb
+where etapa = %s and rede = %s and (%s::text is null or codigo_ibge = %s::text)
+group by ano, etapa, rede
+order by ano
+"""
+
+
+def serie_ideb(
+    conn,
+    codigo_ibge: str | None = None,
+    etapa: str = "anos_iniciais",
+    rede: str = "municipal",
+) -> list[dict]:
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(SERIE_IDEB, (etapa, rede, codigo_ibge, codigo_ibge)).fetchall()
+
+
+# cada conjunto de dados aponta para a requisição que o trouxe, então dá para
+# dizer de onde veio, quando e com que resposta o servidor atendeu
+FRESCOR = """
+select t.tabela, t.linhas, c.fonte, c.url, c.status_http, c.bytes, c.executada_em
+from (
+    select 'Casos de dengue' as tabela, count(*)::int as linhas, max(coleta_id) as coleta
+    from caso_dengue
+    union all select 'Leitos da rede estadual', count(*)::int, max(coleta_id) from leito
+    union all select 'Unidades básicas de saúde', count(*)::int, max(coleta_id) from ubs
+    union all select 'Manifestações da ouvidoria', count(*)::int, max(coleta_id) from manifestacao
+    union all select 'Despesa por função', count(*)::int, max(coleta_id) from despesa_funcao
+    union all select 'Ocorrências criminais', count(*)::int, max(coleta_id) from ocorrencia
+    union all select 'Matrículas do censo escolar', count(*)::int, max(coleta_id) from matricula
+    union all select 'IDEB', count(*)::int, max(coleta_id) from ideb
+    union all select 'População', count(*)::int, max(coleta_id) from populacao
+) t
+left join coleta c on c.id = t.coleta
+where t.linhas > 0
+order by c.executada_em desc nulls last
+"""
+
+
+def frescor(conn) -> list[dict]:
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(FRESCOR).fetchall()
+
+
+POR_FONTE = """
+select fonte,
+       count(*)::int as coletas,
+       max(executada_em) as ultima,
+       coalesce(sum(bytes), 0)::bigint as bytes,
+       count(*) filter (where status_http >= 400)::int as recusadas
+from coleta
+group by fonte
+order by max(executada_em) desc
+"""
+
+
+def por_fonte(conn) -> list[dict]:
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(POR_FONTE).fetchall()
+

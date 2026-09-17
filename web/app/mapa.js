@@ -2,7 +2,7 @@
 
 // Desenha os 246 municípios em SVG a partir do contorno do IBGE, sem biblioteca
 // de mapa. Para um estado só, uma projeção linear simples já sai correta.
-const RAMPA = ["#e4e9e7", "#b9cfcb", "#7fafaa", "#3f8489", "#14555f"];
+const RAMPA = ["#d5e2de", "#b9cfcb", "#7fafaa", "#3f8489", "#14555f"];
 
 function aneis(geometria) {
   return geometria.type === "Polygon" ? geometria.coordinates : geometria.coordinates.flat();
@@ -56,10 +56,10 @@ export default function Mapa({ malha, valores, nomes, unidade, selecionado, aoSe
       <svg viewBox={`0 0 ${largura} ${altura}`} className="mapa" role="img"
            aria-label={`Mapa de Goiás colorido por ${unidade}`}>
         <defs>
-          <pattern id="hachura" width="5" height="5" patternUnits="userSpaceOnUse"
+          <pattern id="hachura" width="7" height="7" patternUnits="userSpaceOnUse"
                    patternTransform="rotate(45)">
-            <rect width="5" height="5" fill="#f8fafa" />
-            <line x1="0" y1="0" x2="0" y2="5" stroke="#c8d2d3" strokeWidth="1.4" />
+            <rect width="7" height="7" fill="#eef2f2" />
+            <line x1="0" y1="0" x2="0" y2="7" stroke="#d6dedf" strokeWidth="1.1" />
           </pattern>
         </defs>
         {malha.features.map((f) => {
@@ -72,8 +72,8 @@ export default function Mapa({ malha, valores, nomes, unidade, selecionado, aoSe
               key={codigo}
               d={traco(f.geometry, box, largura, altura)}
               fill={preenchimento}
-              stroke={escolhido ? "#b8860b" : "#eef1f2"}
-              strokeWidth={escolhido ? 2.2 : 0.5}
+              stroke={escolhido ? "#b3820f" : "#f2f5f5"}
+              strokeWidth={escolhido ? 2.4 : 0.6}
               onClick={() => aoSelecionar(codigo)}
             >
               <title>{`${nomes[codigo] ?? codigo}${valor == null ? ": sem dado" : `: ${numero(valor)}`}`}</title>

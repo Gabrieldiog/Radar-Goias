@@ -31,6 +31,19 @@ export const INDICADORES = {
       )} unidade por 10 mil moradores.`;
     },
   },
+  "ubs-noturnas": {
+    sentido: "maior",
+    curto: "unidades de saúde que atendem à noite",
+    eixo: "Saúde",
+    campo: "por_10mil",
+    rotulo: "Atende à noite",
+    unidade: "unidades noturnas por 10 mil hab",
+    destaque: (linhas, total) => {
+      const zerados = linhas.filter((l) => l.noturnas === 0).length;
+      if (!linhas.length) return SEM_RESUMO;
+      return `${zerados} dos ${total} municípios não têm nenhuma unidade de saúde que atenda à noite.`;
+    },
+  },
   "incidencia-dengue": {
     sentido: "menor",
     curto: "incidência de dengue",

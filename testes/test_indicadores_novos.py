@@ -12,7 +12,7 @@ def conn():
     with banco.conecta() as c:
         banco.aplica_esquema(c)
         c.execute(
-            "truncate manifestacao, ubs, leito, caso_dengue, ideb, matricula, despesa_funcao, populacao, municipio, coleta"
+            "truncate manifestacao, ubs, leito, caso_dengue, ideb, matricula, despesa_funcao, unidade_saude, populacao, municipio, coleta"
             " restart identity cascade"
         )
         banco.carrega_municipios(c)
@@ -379,3 +379,71 @@ def test_ideb_aparece_mesmo_sem_populacao(conn):
     por_codigo = {l["codigo_ibge"]: l for l in linhas}
     assert "5200050" in por_codigo
     assert por_codigo["5200050"]["habitantes"] is None
+
+
+def unidade(conn, cnes="111", codigo="5208707", noite=False, fds=False,
+            regiao="Central", macro="Centro Oeste", tipo="CENTRO DE SAUDE/UNIDADE BASICA"):
+    banco.grava_unidades(
+        conn,
+        [(cnes, codigo, f"CS {cnes}", tipo,
+          "ATENDIMENTO NOS TURNOS DA MANHA, TARDE E NOITE" if noite
+          else "ATENDIMENTOS NOS TURNOS DA MANHA E A TARDE",
+          noite, False, fds, 5, -16.7, -49.3, regiao, macro)],
+    )
+
+
+# Verifica a conta: unidades noturnas divididas por habitantes, vezes 10 mil.
+def test_unidades_noturnas_por_10_mil(conn):
+    unidade(conn, "111", noite=True)
+    unidade(conn, "222", noite=True)
+    linha = indicadores.unidades_por_turno(conn)[0]
+    assert linha["noturnas"] == 2
+    assert linha["por_10mil"] == pytest.approx(0.01, abs=0.005)
+
+
+# Verifica que município sem nenhuma unidade noturna aparece com zero, e não
+# some da lista. Zero aqui é a informação, não é ausência de dado: são 155 dos
+# 246 municípios de Goiás.
+def test_municipio_sem_noturna_aparece_com_zero(conn):
+    unidade(conn, "111", noite=False)
+    linha = indicadores.unidades_por_turno(conn)[0]
+    assert (linha["unidades"], linha["noturnas"], linha["por_10mil"]) == (1, 0, 0.0)
+
+
+# Verifica a proporção, que responde outra pergunta: das unidades que o
+# município tem, quantas atendem depois do expediente.
+def test_proporcao_de_noturnas(conn):
+    unidade(conn, "111", noite=True)
+    unidade(conn, "222", noite=False)
+    unidade(conn, "333", noite=False)
+    unidade(conn, "444", noite=False)
+    assert indicadores.unidades_por_turno(conn)[0]["pct_noturnas"] == pytest.approx(25.0)
+
+
+# Verifica que o fim de semana é contado separado do turno da noite, porque são
+# perguntas diferentes: abrir à noite não é abrir no sábado.
+def test_fim_de_semana_e_contado_separado(conn):
+    unidade(conn, "111", noite=True, fds=False)
+    unidade(conn, "222", noite=False, fds=True)
+    linha = indicadores.unidades_por_turno(conn)[0]
+    assert (linha["noturnas"], linha["fim_de_semana"]) == (1, 1)
+
+
+# Verifica que a região de saúde agrega vários municípios numa linha só. São 18
+# regiões contra 246 municípios, e é um nível de comparação novo no painel.
+def test_regiao_de_saude_junta_municipios(conn):
+    banco.grava_populacao(conn, [Populacao("5200050", 2025, 10000, "estimativa")])
+    unidade(conn, "111", codigo="5208707", noite=True, regiao="Central")
+    unidade(conn, "222", codigo="5200050", noite=False, regiao="Central")
+    linhas = indicadores.por_regiao_de_saude(conn)
+    assert len(linhas) == 1
+    assert (linhas[0]["municipios"], linhas[0]["unidades"], linhas[0]["noturnas"]) == (2, 2, 1)
+    assert linhas[0]["habitantes"] == 1510000
+
+
+# Verifica que regiões diferentes não se misturam.
+def test_regioes_diferentes_nao_se_misturam(conn):
+    banco.grava_populacao(conn, [Populacao("5200050", 2025, 10000, "estimativa")])
+    unidade(conn, "111", codigo="5208707", regiao="Central")
+    unidade(conn, "222", codigo="5200050", regiao="Norte")
+    assert {l["regiao_saude"] for l in indicadores.por_regiao_de_saude(conn)} == {"Central", "Norte"}

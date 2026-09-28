@@ -7,7 +7,7 @@ from urllib.parse import quote
 import httpx
 
 from radar.consulta import exige_limite
-from radar.municipios import Sentinela, para_codigo7
+from radar.municipios import MunicipioDesconhecido, Sentinela, para_codigo7
 
 BASE = "https://dadosabertos.go.gov.br/api/3/action/datastore_search_sql"
 DENGUE = "0c7c9ff8-cdb2-4cee-892d-c9ef28c0ba9f"
@@ -130,6 +130,110 @@ class Manifestacao(NamedTuple):
     status: str
     dias: int
     total: int
+
+
+# A fonte escreve o turno por extenso. Estes dois dizem que a unidade atende
+# depois do fim do expediente, que é o recorte do indicador.
+#
+# O plantão casa por prefixo de propósito: o texto entre parênteses varia na
+# pontuação, e escrever "SABADOS,DOMINGOS" sem o espaço que a fonte usa fez as
+# 38 unidades de 24 horas serem contadas como diurnas até isso ser pego.
+NOTURNO_EXATO = "ATENDIMENTO NOS TURNOS DA MANHA, TARDE E NOITE"
+NOTURNO_PREFIXO = "ATENDIMENTO CONTINUO DE 24 HORAS"
+
+
+def atende_a_noite(turno: str) -> bool:
+    turno = (turno or "").strip()
+    return turno == NOTURNO_EXATO or turno.startswith(NOTURNO_PREFIXO)
+FIM_DE_SEMANA = {"Sábado", "Domingo"}
+VAZIOS = {"", "NAO INFORMADO", "NÃO INFORMADO"}
+
+
+class Unidade(NamedTuple):
+    cnes: str
+    codigo_ibge: str
+    nome: str
+    tipo: str
+    turno: str
+    noite: bool
+    sempre_aberto: bool
+    fim_de_semana: bool
+    dias: int
+    latitude: float | None
+    longitude: float | None
+    regiao_saude: str
+    macrorregiao: str
+
+
+def sql_unidades(recurso: str = UBS, limite: int = 9000) -> str:
+    return exige_limite(
+        'SELECT "codigo_cnes" AS cnes,'
+        ' "codigo_ibge_municipio_gestor" AS ibge,'
+        ' "nome_fantasia" AS nome,'
+        ' "tipo_unidade" AS tipo,'
+        ' "turno_atendimento" AS turno,'
+        ' "estabelecimento_sempre_aberto" AS sempre_aberto,'
+        ' "dia_da_semana" AS dia,'
+        ' "latitude" AS latitude,'
+        ' "longitude" AS longitude,'
+        ' "regiao_saude" AS regiao,'
+        ' "macrorregiao" AS macrorregiao'
+        f' FROM "{recurso}" LIMIT {limite}'
+    )
+
+
+def _coordenada(valor) -> float | None:
+    if valor is None or str(valor).strip() in VAZIOS:
+        return None
+    try:
+        return float(valor)
+    except ValueError:
+        return None
+
+
+def le_unidades(payload) -> list[Unidade]:
+    """Junta as linhas de dia da semana numa linha por unidade.
+
+    Unidade sempre aberta não gera linha de dia nenhum na fonte, então ler a
+    ausência como "não abre" inverteria o sentido: ela abre todo dia.
+    """
+    juntas: dict[str, dict] = {}
+    for reg in _registros(payload):
+        try:
+            codigo = para_codigo7(reg["ibge"])
+        except (Sentinela, MunicipioDesconhecido):
+            continue
+        atual = juntas.setdefault(
+            reg["cnes"], {"registro": reg, "dias": set()}
+        )
+        dia = (reg.get("dia") or "").strip()
+        if dia:
+            atual["dias"].add(dia)
+        atual["codigo_ibge"] = codigo
+
+    unidades = []
+    for cnes, junta in juntas.items():
+        reg, dias = junta["registro"], junta["dias"]
+        sempre = str(reg.get("sempre_aberto", "")).strip().upper() == "S"
+        turno = (reg.get("turno") or "").strip()
+        unidades.append(
+            Unidade(
+                cnes=cnes,
+                codigo_ibge=junta["codigo_ibge"],
+                nome=(reg.get("nome") or "").strip(),
+                tipo=(reg.get("tipo") or "").strip(),
+                turno=turno,
+                noite=atende_a_noite(turno),
+                sempre_aberto=sempre,
+                fim_de_semana=sempre or bool(dias & FIM_DE_SEMANA),
+                dias=7 if sempre else len(dias),
+                latitude=_coordenada(reg.get("latitude")),
+                longitude=_coordenada(reg.get("longitude")),
+                regiao_saude=(reg.get("regiao") or "").strip(),
+                macrorregiao=(reg.get("macrorregiao") or "").strip(),
+            )
+        )
+    return unidades
 
 
 def sql_ubs(recurso: str = UBS, limite: int = 300) -> str:

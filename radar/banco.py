@@ -164,3 +164,22 @@ def grava_ideb(conn, linhas, coleta_id=None) -> int:
     )
     return len(linhas)
 
+
+def grava_unidades(conn, linhas, coleta_id=None) -> int:
+    linhas = [(*u, coleta_id) for u in linhas]
+    conn.cursor().executemany(
+        "insert into unidade_saude"
+        " (cnes, codigo_ibge, nome, tipo, turno, noite, sempre_aberto, fim_de_semana,"
+        "  dias, latitude, longitude, regiao_saude, macrorregiao, coleta_id)"
+        " values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        " on conflict (cnes) do update set"
+        " codigo_ibge = excluded.codigo_ibge, nome = excluded.nome, tipo = excluded.tipo,"
+        " turno = excluded.turno, noite = excluded.noite,"
+        " sempre_aberto = excluded.sempre_aberto, fim_de_semana = excluded.fim_de_semana,"
+        " dias = excluded.dias, latitude = excluded.latitude, longitude = excluded.longitude,"
+        " regiao_saude = excluded.regiao_saude, macrorregiao = excluded.macrorregiao,"
+        " coleta_id = excluded.coleta_id",
+        linhas,
+    )
+    return len(linhas)
+

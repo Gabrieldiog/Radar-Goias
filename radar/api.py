@@ -77,6 +77,14 @@ CATALOGO = {
         "dimensao": "municipio",
         "fontes": ["www.gov.br/mj", "servicodados.ibge.gov.br"],
     },
+    "ubs-noturnas": {
+        "id": "ubs-noturnas",
+        "nome": "Unidades de saúde que atendem à noite, por 10 mil habitantes",
+        "unidade": "unidades noturnas por 10 mil hab",
+        "formula": "unidades com turno noturno ou plantão de 24 horas / habitantes * 10000",
+        "dimensao": "municipio",
+        "fontes": ["dadosabertos.go.gov.br", "servicodados.ibge.gov.br"],
+    },
     "ideb-anos-iniciais": {
         "id": "ideb-anos-iniciais",
         "nome": "IDEB dos anos iniciais na rede municipal",
@@ -124,6 +132,7 @@ CAMPO = {
     "gasto-educacao-por-habitante": "por_habitante",
     "gasto-educacao-por-aluno": "por_aluno",
     "ideb-anos-iniciais": "ideb",
+    "ubs-noturnas": "por_10mil",
     "ouvidoria-por-orgao": "tempo_medio",
     "homicidio-por-100mil": "por_100mil",
 }
@@ -134,6 +143,8 @@ def _linhas(conn, indicador_id, ano=None, prazo=30):
         return indicadores.leitos_por_100mil(conn)
     if indicador_id == "ubs-por-habitante":
         return indicadores.ubs_por_10mil(conn)
+    if indicador_id == "ubs-noturnas":
+        return indicadores.unidades_por_turno(conn)
     if indicador_id == "ideb-anos-iniciais":
         return indicadores.ideb_por_municipio(conn, ano=ano)
     if indicador_id == "gasto-educacao-por-aluno":
@@ -193,9 +204,69 @@ def _ficha(conn, cabecalhos: list[dict]) -> list[dict]:
     return cabecalhos
 
 
+DESCRICAO = """
+Indicadores dos 246 municípios de Goiás, calculados a partir de seis fontes
+públicas que não conversam entre si. Toda resposta diz de onde o número veio.
+
+## Como usar no seu sistema
+
+Peça uma chave e mande ela no cabeçalho `x-api-key` de cada requisição.
+
+```bash
+curl -H "x-api-key: SUA_CHAVE" \\
+  "https://SEU_HOST/v1/indicadores/ideb-anos-iniciais?municipio=5208707"
+```
+
+Se preferir, a chave também vale como parâmetro: `?chave=SUA_CHAVE`. O cabeçalho
+é a forma recomendada, porque a query fica gravada em log de servidor.
+
+Sem chave, a resposta é **401**. Com chave inválida, também.
+
+## Limite de requisições
+
+**60 por minuto, contados por chave e não por IP.** Numa faculdade todo mundo
+sai pelo mesmo IP, e um balde compartilhado faria um usuário derrubar os
+colegas. Ao estourar, a resposta é **429**, e os cabeçalhos `X-RateLimit-*`
+dizem quanto sobrou e quando reabre.
+
+## Como achar o município
+
+A chave de junção é o **código IBGE de 7 dígitos**, que é o mesmo do mapa do
+IBGE. `GET /v1/municipios` devolve os 246 com código e nome. Não use nome como
+identificador: as fontes escrevem acento e apóstrofo de jeitos diferentes.
+
+## O que vem em cada resposta
+
+Lista de indicadores em `dados`, o total em `total`, e em `meta` as fontes que
+produziram aquele número, a dimensão (município ou órgão) e a base populacional
+usada como denominador. Indicador por habitante traz `habitantes` e
+`ano_populacao` em cada linha, para você conferir a conta.
+
+`GET /v1/indicadores` devolve o catálogo com a fórmula de cada um.
+
+## Procedência
+
+`GET /v1/procedencia` devolve, para cada conjunto de dados, o endereço de onde
+ele veio, o status que o servidor respondeu, o tamanho e a data da coleta.
+Qualquer número desta API pode ser rastreado até a requisição que o trouxe.
+
+## Ressalvas que valem para todo indicador por habitante
+
+Município pequeno oscila muito: poucos casos numa cidade de dois mil habitantes
+viram uma taxa alta que não se repete no ano seguinte. E o cálculo usa a
+estimativa populacional mais recente do IBGE, que o campo `ano_populacao`
+declara em cada linha.
+"""
+
+
 def cria_app(limite: str = "60/minute") -> FastAPI:
     limiter = Limiter(key_func=balde, default_limits=[limite], headers_enabled=True)
-    app = FastAPI(title="Radar Goiás", version="0.1.0")
+    app = FastAPI(
+        title="Radar Goiás",
+        version="0.1.0",
+        description=DESCRICAO,
+        contact={"name": "Radar Goiás", "url": "https://github.com/Gabrieldiog/Radar-Goias"},
+    )
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
     app.add_middleware(SlowAPIMiddleware)
@@ -266,6 +337,14 @@ def cria_app(limite: str = "60/minute") -> FastAPI:
                 "conjuntos": indicadores.frescor(conn),
                 "fontes": indicadores.por_fonte(conn),
             }
+
+    # 18 regiões de saúde, que é como o estado organiza a rede de fato. É um
+    # nível de comparação que não existe em nenhum outro indicador do painel.
+    @app.get("/v1/regioes-de-saude")
+    def regioes_de_saude(request: Request, chave: str = Depends(exige_chave)):
+        with banco.conecta() as conn:
+            linhas = indicadores.por_regiao_de_saude(conn)
+        return {"dados": linhas, "total": len(linhas), "fontes": ["dadosabertos.go.gov.br"]}
 
     @app.get("/v1/indicadores")
     def catalogo(request: Request, chave: str = Depends(exige_chave)):

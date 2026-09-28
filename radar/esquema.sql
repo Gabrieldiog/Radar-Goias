@@ -103,3 +103,23 @@ create table if not exists ideb (
     coleta_id   bigint  references coleta,
     primary key (codigo_ibge, ano, etapa, rede)
 );
+
+create table if not exists unidade_saude (
+    cnes           text primary key,
+    codigo_ibge    text    not null references municipio,
+    nome           text    not null,
+    tipo           text    not null,
+    turno          text    not null,
+    noite          boolean not null,
+    sempre_aberto  boolean not null,
+    fim_de_semana  boolean not null,
+    dias           integer not null check (dias between 0 and 7),
+    latitude       double precision,
+    longitude      double precision,
+    regiao_saude   text    not null,
+    macrorregiao   text    not null,
+    coleta_id      bigint  references coleta
+);
+
+create index if not exists unidade_saude_municipio on unidade_saude (codigo_ibge);
+create index if not exists unidade_saude_regiao on unidade_saude (regiao_saude);

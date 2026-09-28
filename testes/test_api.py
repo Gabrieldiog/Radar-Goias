@@ -17,7 +17,7 @@ def cliente(monkeypatch):
     with banco.conecta() as c:
         banco.aplica_esquema(c)
         c.execute(
-            "truncate caso_dengue, matricula, despesa_funcao, populacao, municipio, coleta"
+            "truncate caso_dengue, matricula, despesa_funcao, unidade_saude, populacao, municipio, coleta"
             " restart identity cascade"
         )
         banco.carrega_municipios(c)
@@ -71,6 +71,7 @@ def test_catalogo_lista_o_indicador(cliente):
         "gasto-educacao-por-habitante",
         "gasto-educacao-por-aluno",
         "ideb-anos-iniciais",
+        "ubs-noturnas",
         "homicidio-por-100mil",
     }
 
@@ -267,6 +268,17 @@ def test_todo_indicador_de_municipio_devolve_habitantes(cliente):
         banco.grava_matriculas(c, [("5208707", 2024, "municipal", 3, 100)])
         banco.grava_ideb(c, [("5208707", 2025, "anos_iniciais", "municipal", 6.6, 6.1, 0.99, 6.66)])
         banco.grava_ocorrencias(c, [("5208707", 2026, 1, "Homicídio doloso", "Estadual", 4)])
+        banco.grava_unidades(
+            c,
+            [
+                ("111", "5208707", "CS CENTRO", "CENTRO DE SAUDE/UNIDADE BASICA",
+                 "ATENDIMENTO NOS TURNOS DA MANHA, TARDE E NOITE", True, False, False, 5,
+                 -16.7, -49.3, "Central", "Centro Oeste"),
+                ("222", "5208707", "CS NORTE", "POSTO DE SAUDE",
+                 "ATENDIMENTOS NOS TURNOS DA MANHA E A TARDE", False, False, False, 5,
+                 -16.6, -49.2, "Central", "Centro Oeste"),
+            ],
+        )
     for id, meta in api.CATALOGO.items():
         if meta["dimensao"] != "municipio":
             continue

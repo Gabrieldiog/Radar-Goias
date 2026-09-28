@@ -314,3 +314,59 @@ def por_fonte(conn) -> list[dict]:
     with conn.cursor(row_factory=dict_row) as cur:
         return cur.execute(POR_FONTE).fetchall()
 
+
+# Unidade que fecha às 18h não atende quem trabalha das 8 às 18. O turno vem
+# escrito na própria fonte que o projeto já baixava, e ficava sem uso.
+UNIDADES_POR_TURNO = """
+with pop as (
+    select distinct on (codigo_ibge) codigo_ibge, ano, habitantes, base
+    from populacao where base = %s order by codigo_ibge, ano desc
+)
+select u.codigo_ibge, m.nome,
+       count(*)::int as unidades,
+       count(*) filter (where u.noite)::int as noturnas,
+       count(*) filter (where u.fim_de_semana)::int as fim_de_semana,
+       round(100.0 * count(*) filter (where u.noite) / count(*), 1)::float8 as pct_noturnas,
+       max(u.regiao_saude) as regiao_saude,
+       p.habitantes, p.ano as ano_populacao, p.base as base_populacional,
+       round(count(*) filter (where u.noite) * 10000.0 / p.habitantes, 2)::float8 as por_10mil
+from unidade_saude u
+join municipio m using (codigo_ibge)
+join pop p using (codigo_ibge)
+group by u.codigo_ibge, m.nome, p.habitantes, p.ano, p.base
+order by por_10mil desc, unidades desc
+"""
+
+
+def unidades_por_turno(conn, base: str = "estimativa") -> list[dict]:
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(UNIDADES_POR_TURNO, (base,)).fetchall()
+
+
+# A região de saúde é a divisão que o próprio estado usa para organizar a rede,
+# e é um nível de comparação que o painel não tinha: são 18, contra 246.
+POR_REGIAO_DE_SAUDE = """
+with pop as (
+    select distinct on (codigo_ibge) codigo_ibge, ano, habitantes, base
+    from populacao where base = %s order by codigo_ibge, ano desc
+)
+select u.regiao_saude, max(u.macrorregiao) as macrorregiao,
+       count(distinct u.codigo_ibge)::int as municipios,
+       count(*)::int as unidades,
+       count(*) filter (where u.noite)::int as noturnas,
+       count(distinct u.codigo_ibge) filter (where u.codigo_ibge in (
+           select codigo_ibge from unidade_saude where noite
+       ))::int as municipios_com_noturna,
+       sum(p.habitantes)::bigint as habitantes,
+       round(count(*) filter (where u.noite) * 10000.0 / sum(p.habitantes), 2)::float8 as por_10mil
+from unidade_saude u
+join pop p using (codigo_ibge)
+group by u.regiao_saude
+order by por_10mil desc
+"""
+
+
+def por_regiao_de_saude(conn, base: str = "estimativa") -> list[dict]:
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(POR_REGIAO_DE_SAUDE, (base,)).fetchall()
+

@@ -1,4 +1,5 @@
 import tempfile
+from collections import Counter
 from pathlib import Path
 from urllib.parse import quote
 
@@ -42,12 +43,24 @@ def executa_leitos(conn, cliente, ano: int = 2026) -> dict:
 
 
 def executa_ubs(conn, cliente) -> dict:
+    """Traz as unidades uma a uma, e a contagem por município sai delas.
+
+    Antes o projeto pedia ao portal só a contagem, e jogava fora vinte e sete
+    colunas que vinham no mesmo arquivo, entre elas coordenada, turno de
+    atendimento e região de saúde. Agora é um pedido só, com tudo.
+    """
     resposta = cliente.json(
-        f"{ckan_go.BASE}?sql={quote(ckan_go.sql_ubs())}", ckan_go.ESPERA_MAXIMA
+        f"{ckan_go.BASE}?sql={quote(ckan_go.sql_unidades())}", ckan_go.ESPERA_MAXIMA
     )
-    unidades = ckan_go.le_ubs(resposta.payload)
+    unidades = ckan_go.le_unidades(resposta.payload)
     coleta = banco.grava_coleta(conn, "ckan-go", resposta.url, resposta.status, resposta.bytes)
-    return {"ubs": banco.grava_ubs(conn, unidades, coleta)}
+    por_municipio = Counter(u.codigo_ibge for u in unidades)
+    contagem = [ckan_go.Ubs(codigo, n) for codigo, n in sorted(por_municipio.items())]
+    return {
+        "ubs": banco.grava_ubs(conn, contagem, coleta),
+        "unidades": banco.grava_unidades(conn, unidades, coleta),
+        "noturnas": sum(1 for u in unidades if u.noite),
+    }
 
 
 def executa_ouvidoria(conn, cliente, ano: int = 2026) -> dict:

@@ -887,6 +887,85 @@ p { max-width: 54ch; }
 /* a caixa rolável entra na ordem do foco sozinha; que seja na língua do painel */
 .ranking ol:focus-visible { outline: 2px solid var(--ouro); outline-offset: 3px; }
 
+/* ============ página de como puxar a API ============ */
+
+/* O bloco de código veste o verde da faixa: é a única superfície do painel que
+   não é papel, e isso já diz "aqui você copia, não lê". */
+.codigo {
+  margin: 14px 0 0;
+  padding: 16px 18px;
+  background: var(--fundo);
+  color: #dfeae9;
+  border-radius: 3px;
+  overflow-x: auto;
+  font-family: var(--mono), ui-monospace, monospace;
+  font-size: 0.82rem;
+  line-height: 1.65;
+  tab-size: 2;
+}
+
+.codigo code { background: none; color: inherit; padding: 0; font-size: inherit; }
+
+code {
+  font-family: var(--mono), ui-monospace, monospace;
+  font-size: 0.88em;
+  background: #e2eaea;
+  padding: 1px 5px;
+  border-radius: 2px;
+  white-space: nowrap;
+}
+
+/* o endereço é o dado que a pessoa veio buscar, então ganha peso de número */
+.endereco { background: none; padding: 0; color: var(--ouro-texto); font-weight: 500; }
+
+/* Numerar aqui não é enfeite: são três passos em ordem, e pular o segundo dá
+   401. O número fica na margem para a leitura do texto não tropeçar nele. */
+.passos { list-style: none; margin: 0; padding: 0; counter-reset: passo; }
+
+.passos > li {
+  counter-increment: passo;
+  position: relative;
+  padding: 0 0 28px 46px;
+  border-left: 1px solid var(--linha);
+  margin-left: 13px;
+}
+
+.passos > li:last-child { border-left-color: transparent; padding-bottom: 0; }
+
+.passos > li::before {
+  content: counter(passo);
+  position: absolute;
+  left: -13px;
+  top: 0;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  background: var(--papel);
+  border: 1px solid var(--borda-controle);
+  border-radius: 50%;
+  font-family: var(--mono), monospace;
+  font-size: 0.78rem;
+  color: var(--tinta-suave);
+}
+
+.passos h3 { margin: 2px 0 6px; font-size: 1rem; }
+.passos p { margin: 0; color: var(--tinta-suave); font-size: 0.93rem; max-width: 56ch; }
+
+.regras { margin: 0; max-width: 62ch; }
+.regras dt { font-weight: 600; margin-top: 20px; }
+.regras dt:first-child { margin-top: 0; }
+.regras dd { margin: 4px 0 0; color: var(--tinta-suave); font-size: 0.93rem; }
+
+/* a fórmula é longa e não cabe na coluna sem quebrar */
+.registro td.conta {
+  white-space: normal;
+  font-family: var(--mono), monospace;
+  font-size: 0.8rem;
+  color: var(--tinta-suave);
+  min-width: 22ch;
+}
+
 /* ============ telas de celular ============ */
 
 /* Abaixo de 520px a fita das abas não cabe e a terceira visão aparecia como
@@ -901,6 +980,8 @@ p { max-width: 54ch; }
   }
 
   .abas button { padding-inline: 0; margin-right: 20px; }
+  .codigo { padding: 12px 13px; font-size: 0.76rem; }
+  .passos > li { padding-left: 32px; }
 }
 
 /* Alvo de dedo. O (hover: none) limita ao toque: no computador o sublinhado

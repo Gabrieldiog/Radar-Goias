@@ -13,6 +13,7 @@ export default function Faixa({ titulo, apoio, children }) {
             <Link href="/">Mapa do estado</Link>
             <Link href="/comparar">Comparar duas cidades</Link>
             <Link href="/procedencia">De onde veio cada número</Link>
+            <Link href="/usar-a-api">Puxar pela API</Link>
           </nav>
         </div>
         <h1>{titulo}</h1>

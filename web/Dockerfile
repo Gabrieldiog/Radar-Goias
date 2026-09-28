@@ -7,6 +7,12 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY . .
+
+# o endereço público entra no pacote do navegador no build, porque é assim
+# que o Next trata NEXT_PUBLIC_; quem sobe declara em RADAR_API_PUBLICA
+ARG RADAR_API_PUBLICA=http://127.0.0.1:8000
+ENV NEXT_PUBLIC_API_PUBLICA=$RADAR_API_PUBLICA
+
 RUN pnpm build
 
 FROM node:22-slim AS painel

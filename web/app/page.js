@@ -135,6 +135,7 @@ export default function Painel() {
             <nav className="atalhos">
               <Link href="/comparar">Comparar duas cidades</Link>
               <Link href="/procedencia">De onde veio cada número</Link>
+              <Link href="/usar-a-api">Puxar pela API</Link>
             </nav>
           </div>
 

@@ -256,7 +256,7 @@ Peça uma chave e mande ela no cabeçalho `x-api-key` de cada requisição.
 
 ```bash
 curl -H "x-api-key: SUA_CHAVE" \\
-  "https://SEU_HOST/v1/indicadores/ideb-anos-iniciais?municipio=5208707"
+  "{endereco}/v1/indicadores/ideb-anos-iniciais?municipio=5208707"
 ```
 
 Se preferir, a chave também vale como parâmetro: `?chave=SUA_CHAVE`. O cabeçalho
@@ -301,12 +301,25 @@ declara em cada linha.
 """
 
 
+# o mesmo código serve a máquina de quem desenvolve e o servidor publicado, e
+# quem sobe diz o endereço em RADAR_ENDERECO_PUBLICO
+ENDERECO_PADRAO = "http://127.0.0.1:8000"
+
+
+def endereco_publico() -> str:
+    return os.environ.get("RADAR_ENDERECO_PUBLICO", ENDERECO_PADRAO).rstrip("/")
+
+
+def descricao() -> str:
+    return DESCRICAO.replace("{endereco}", endereco_publico())
+
+
 def cria_app(limite: str = "60/minute") -> FastAPI:
     limiter = Limiter(key_func=balde, default_limits=[limite], headers_enabled=True)
     app = FastAPI(
         title="Radar Goiás",
         version="0.1.0",
-        description=DESCRICAO,
+        description=descricao(),
         contact={"name": "Radar Goiás", "url": "https://github.com/Gabrieldiog/Radar-Goias"},
     )
     app.state.limiter = limiter

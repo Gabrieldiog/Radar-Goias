@@ -22,6 +22,7 @@ services:
     environment:
       RADAR_BANCO_URL: postgresql://postgres@banco:5432/radar_goias
       RADAR_CHAVES: ${RADAR_CHAVES:-demo}
+      RADAR_ENDERECO_PUBLICO: ${RADAR_API_PUBLICA:-http://127.0.0.1:8000}
     ports:
       - "${RADAR_PORTA_API:-8000}:8000"
     depends_on:
@@ -37,7 +38,10 @@ services:
       retries: 40
 
   painel:
-    build: ./web
+    build:
+      context: ./web
+      args:
+        RADAR_API_PUBLICA: ${RADAR_API_PUBLICA:-http://127.0.0.1:8000}
     environment:
       RADAR_API_URL: http://api:8000
       RADAR_CHAVE: ${RADAR_CHAVES:-demo}

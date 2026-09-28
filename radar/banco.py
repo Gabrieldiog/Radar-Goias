@@ -183,3 +183,21 @@ def grava_unidades(conn, linhas, coleta_id=None) -> int:
     )
     return len(linhas)
 
+
+def grava_focos(conn, linhas, coleta_id=None) -> int:
+    """O identificador vem do INPE, então recarregar o mesmo dia atualiza.
+
+    O arquivo do dia enche ao longo das horas, e é por isso que ele é buscado
+    mais de uma vez: sem chave própria, cada busca duplicaria o que já entrou.
+    """
+    linhas = [(*f, coleta_id) for f in linhas]
+    conn.cursor().executemany(
+        "insert into foco_queimada"
+        " (id, codigo_ibge, detectado_em, satelite, bioma, latitude, longitude, frp, coleta_id)"
+        " values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        " on conflict (id) do update set"
+        " frp = excluded.frp, coleta_id = excluded.coleta_id",
+        linhas,
+    )
+    return len(linhas)
+

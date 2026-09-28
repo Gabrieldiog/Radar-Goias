@@ -716,3 +716,29 @@ p { max-width: 68ch; }
   font-size: 0.76rem;
   color: var(--tinta-suave);
 }
+
+/* a ressalva anda colada na manchete de propósito: número que precisa dela
+   nunca deve aparecer sozinho na tela */
+.ressalva {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  margin: 16px 0 0;
+  padding-left: 24px;
+  max-width: 70ch;
+  font-size: 0.88rem;
+  color: var(--tinta-suave);
+}
+
+.ressalva .selo {
+  font-family: var(--mono), monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ouro);
+  border: 1px solid var(--ouro);
+  border-radius: 100px;
+  padding: 2px 9px;
+  white-space: nowrap;
+}

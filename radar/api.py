@@ -69,6 +69,20 @@ CATALOGO = {
         "dimensao": "municipio",
         "fontes": ["apidatalake.tesouro.gov.br", "servicodados.ibge.gov.br"],
     },
+    "focos-de-queimada": {
+        "id": "focos-de-queimada",
+        "nome": "Focos de calor detectados por satélite nos últimos sete dias",
+        "unidade": "focos em sete dias",
+        "formula": "contagem de detecções de satélite, sem dividir por nada",
+        "dimensao": "municipio",
+        "atualizacao": "diária, e o arquivo do dia enche ao longo das horas",
+        "ressalva": (
+            "Um foco é uma detecção de satélite, não um incêndio. Doze satélites"
+            " cobrem o Brasil e vários veem o mesmo fogo, então o número é piso e"
+            " não conta de incêndios distintos."
+        ),
+        "fontes": ["dataserver-coids.inpe.br"],
+    },
     "homicidio-por-100mil": {
         "id": "homicidio-por-100mil",
         "nome": "Homicídio doloso por 100 mil habitantes",
@@ -83,6 +97,28 @@ CATALOGO = {
         "unidade": "unidades noturnas por 10 mil hab",
         "formula": "unidades com turno noturno ou plantão de 24 horas / habitantes * 10000",
         "dimensao": "municipio",
+        "ressalva": (
+            "29 unidades do estado declaram 'sempre aberto' e, na mesma linha,"
+            " declaram atender só de manhã e à tarde. Quando os dois campos se"
+            " contradizem o Radar segue o turno, então essas 29 não contam como"
+            " porta noturna nem como aberta no fim de semana."
+        ),
+        "fontes": ["dadosabertos.go.gov.br", "servicodados.ibge.gov.br"],
+    },
+    "km-ate-porta-noturna": {
+        "id": "km-ate-porta-noturna",
+        "nome": "Distância até a unidade de saúde aberta à noite mais próxima",
+        "unidade": "quilômetros em linha reta",
+        "formula": (
+            "haversine entre a média das coordenadas das unidades do município e"
+            " a unidade noturna mais próxima do estado; zero para quem tem a sua"
+        ),
+        "dimensao": "municipio",
+        "ressalva": (
+            "Distância em linha reta, não por estrada: o percurso real é maior."
+            " A origem é a média das coordenadas das unidades do município, que"
+            " fica perto de onde as pessoas moram, e não o centro do território."
+        ),
         "fontes": ["dadosabertos.go.gov.br", "servicodados.ibge.gov.br"],
     },
     "ideb-anos-iniciais": {
@@ -133,6 +169,8 @@ CAMPO = {
     "gasto-educacao-por-aluno": "por_aluno",
     "ideb-anos-iniciais": "ideb",
     "ubs-noturnas": "por_10mil",
+    "focos-de-queimada": "focos",
+    "km-ate-porta-noturna": "km",
     "ouvidoria-por-orgao": "tempo_medio",
     "homicidio-por-100mil": "por_100mil",
 }
@@ -143,6 +181,10 @@ def _linhas(conn, indicador_id, ano=None, prazo=30):
         return indicadores.leitos_por_100mil(conn)
     if indicador_id == "ubs-por-habitante":
         return indicadores.ubs_por_10mil(conn)
+    if indicador_id == "km-ate-porta-noturna":
+        return indicadores.km_ate_porta_noturna(conn)
+    if indicador_id == "focos-de-queimada":
+        return indicadores.focos_por_municipio(conn)
     if indicador_id == "ubs-noturnas":
         return indicadores.unidades_por_turno(conn)
     if indicador_id == "ideb-anos-iniciais":
@@ -340,6 +382,19 @@ def cria_app(limite: str = "60/minute") -> FastAPI:
 
     # 18 regiões de saúde, que é como o estado organiza a rede de fato. É um
     # nível de comparação que não existe em nenhum outro indicador do painel.
+    # a única série do painel que se move de um dia para o outro
+    @app.get("/v1/series/fogo")
+    def serie_fogo(
+        request: Request, municipio: str | None = None, chave: str = Depends(exige_chave)
+    ):
+        with banco.conecta() as conn:
+            linhas = indicadores.serie_fogo(conn, municipio)
+        return {
+            "dados": linhas,
+            "total": len(linhas),
+            "fontes": ["dataserver-coids.inpe.br"],
+        }
+
     @app.get("/v1/regioes-de-saude")
     def regioes_de_saude(request: Request, chave: str = Depends(exige_chave)):
         with banco.conecta() as conn:
@@ -365,17 +420,18 @@ def cria_app(limite: str = "60/minute") -> FastAPI:
             linhas = _linhas(conn, indicador_id, ano, prazo)
         if municipio:
             linhas = [l for l in linhas if l.get("codigo_ibge") == municipio]
-        return {
-            "dados": linhas,
-            "total": len(linhas),
-            "meta": {
-                "ano": ano,
-                "dimensao": CATALOGO[indicador_id]["dimensao"],
-                "fontes": CATALOGO[indicador_id]["fontes"],
-                "base_populacional": (
-                    linhas[0].get("base_populacional") if linhas else None
-                ),
-            },
+        catalogo = CATALOGO[indicador_id]
+        meta = {
+            "ano": ano,
+            "dimensao": catalogo["dimensao"],
+            "fontes": catalogo["fontes"],
+            "base_populacional": linhas[0].get("base_populacional") if linhas else None,
         }
+        # ressalva e frequência de atualização viajam com o número, e não só no
+        # catálogo: quem consome a rota direto não vê a outra página
+        for extra in ("ressalva", "atualizacao"):
+            if extra in catalogo:
+                meta[extra] = catalogo[extra]
+        return {"dados": linhas, "total": len(linhas), "meta": meta}
 
     return app

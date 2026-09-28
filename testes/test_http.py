@@ -144,3 +144,21 @@ def test_confianca_continua_verificando():
     contexto = confianca()
     assert contexto.verify_mode == ssl.CERT_REQUIRED
     assert contexto.check_hostname is True
+
+
+# Verifica que o cliente sabe buscar texto puro, e não só JSON. O INPE responde
+# CSV, e tentar decodificar como JSON quebraria.
+def test_busca_texto_puro(relogio):
+    c = cliente(relogio, lambda req: httpx.Response(200, text="a,b\n1,2\n"))
+    r = c.texto("https://dataserver-coids.inpe.br/focos.csv")
+    assert r.payload == "a,b\n1,2\n"
+    assert (r.status, r.bytes) == (200, 8)
+
+
+# Verifica que o texto também espera o ritmo de uma requisição por segundo.
+def test_texto_respeita_o_ritmo(relogio):
+    c = cliente(relogio, lambda req: httpx.Response(200, text="x"))
+    c.texto("https://dataserver-coids.inpe.br/a.csv")
+    antes = relogio.agora
+    c.texto("https://dataserver-coids.inpe.br/b.csv")
+    assert relogio.agora - antes >= 1.0

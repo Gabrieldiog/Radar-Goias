@@ -17,7 +17,7 @@ def cliente(monkeypatch):
     with banco.conecta() as c:
         banco.aplica_esquema(c)
         c.execute(
-            "truncate caso_dengue, matricula, despesa_funcao, unidade_saude, populacao, municipio, coleta"
+            "truncate caso_dengue, matricula, despesa_funcao, unidade_saude, foco_queimada, populacao, municipio, coleta"
             " restart identity cascade"
         )
         banco.carrega_municipios(c)
@@ -72,6 +72,8 @@ def test_catalogo_lista_o_indicador(cliente):
         "gasto-educacao-por-aluno",
         "ideb-anos-iniciais",
         "ubs-noturnas",
+        "focos-de-queimada",
+        "km-ate-porta-noturna",
         "homicidio-por-100mil",
     }
 
@@ -268,6 +270,11 @@ def test_todo_indicador_de_municipio_devolve_habitantes(cliente):
         banco.grava_matriculas(c, [("5208707", 2024, "municipal", 3, 100)])
         banco.grava_ideb(c, [("5208707", 2025, "anos_iniciais", "municipal", 6.6, 6.1, 0.99, 6.66)])
         banco.grava_ocorrencias(c, [("5208707", 2026, 1, "Homicídio doloso", "Estadual", 4)])
+        banco.grava_focos(
+            c,
+            [("foco-1", "5208707", __import__("datetime").datetime(2026, 9, 27, 1, 15),
+              "NOAA-20", "Cerrado", -16.7, -49.3, 12.5)],
+        )
         banco.grava_unidades(
             c,
             [
@@ -288,3 +295,18 @@ def test_todo_indicador_de_municipio_devolve_habitantes(cliente):
         assert goiania, f"{id} perdeu o município do cenário"
         assert goiania[0].get("habitantes"), f"{id} não devolve habitantes"
         assert goiania[0].get("ano_populacao"), f"{id} não diz de que ano é a população"
+
+
+# Verifica que a ressalva do indicador viaja junto do número. Quem consome a
+# rota direto não vê o catálogo, e um foco de calor sem a ressalva vira
+# contagem de incêndios, que é o que ele não é.
+def test_ressalva_acompanha_o_numero(cliente):
+    r = cliente.get(f"/v1/indicadores/focos-de-queimada?chave={CHAVE}").json()
+    assert "detecção de satélite" in r["meta"]["ressalva"]
+    assert r["meta"]["atualizacao"].startswith("diária")
+
+
+# Verifica que indicador sem ressalva não ganha campo vazio à toa.
+def test_indicador_sem_ressalva_nao_inventa_campo(cliente):
+    r = cliente.get(f"/v1/indicadores/incidencia-dengue?chave={CHAVE}").json()
+    assert "ressalva" not in r["meta"]

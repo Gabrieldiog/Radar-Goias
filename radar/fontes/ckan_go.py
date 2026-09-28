@@ -216,6 +216,13 @@ def le_unidades(payload) -> list[Unidade]:
         reg, dias = junta["registro"], junta["dias"]
         sempre = str(reg.get("sempre_aberto", "")).strip().upper() == "S"
         turno = (reg.get("turno") or "").strip()
+        # 29 unidades dizem "sempre aberto" e, na mesma linha, dizem atender só
+        # de manhã e à tarde. Os dois campos se contradizem, e acreditar só no
+        # sinalizador marcava as 29 como abertas no sábado. O projeto decide a
+        # noite pelo turno, então decide o fim de semana pela mesma régua: só
+        # vale quando os dois campos concordam, ou quando existe linha de sábado
+        # ou domingo de verdade.
+        aberta_sempre = sempre and atende_a_noite(turno)
         unidades.append(
             Unidade(
                 cnes=cnes,
@@ -225,8 +232,8 @@ def le_unidades(payload) -> list[Unidade]:
                 turno=turno,
                 noite=atende_a_noite(turno),
                 sempre_aberto=sempre,
-                fim_de_semana=sempre or bool(dias & FIM_DE_SEMANA),
-                dias=7 if sempre else len(dias),
+                fim_de_semana=aberta_sempre or bool(dias & FIM_DE_SEMANA),
+                dias=7 if aberta_sempre else len(dias),
                 latitude=_coordenada(reg.get("latitude")),
                 longitude=_coordenada(reg.get("longitude")),
                 regiao_saude=(reg.get("regiao") or "").strip(),

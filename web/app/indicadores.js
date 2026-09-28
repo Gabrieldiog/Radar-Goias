@@ -44,6 +44,21 @@ export const INDICADORES = {
       return `${zerados} dos ${total} municípios não têm nenhuma unidade de saúde que atenda à noite.`;
     },
   },
+  "km-ate-porta-noturna": {
+    sentido: "menor",
+    curto: "distância até atendimento noturno",
+    eixo: "Saúde",
+    campo: "km",
+    rotulo: "Distância à noite",
+    unidade: "km até atendimento noturno",
+    destaque: (linhas) => {
+      if (!linhas.length) return SEM_RESUMO;
+      const longe = linhas[0];
+      const sem = linhas.filter((l) => l.km > 0);
+      const gente = sem.reduce((s, l) => s + (l.habitantes || 0), 0);
+      return `${fmt(gente)} pessoas moram num dos ${sem.length} municípios sem atendimento noturno, e de ${longe.nome} são ${fmt(longe.km)} km até o mais perto.`;
+    },
+  },
   "incidencia-dengue": {
     sentido: "menor",
     curto: "incidência de dengue",
@@ -59,6 +74,23 @@ export const INDICADORES = {
       )
         .toFixed(1)
         .replace(".", ",")} vezes a mediana do estado.`;
+    },
+  },
+  "focos-de-queimada": {
+    sentido: "menor",
+    curto: "focos de queimada",
+    eixo: "Meio ambiente",
+    campo: "focos",
+    rotulo: "Queimadas",
+    unidade: "focos em sete dias",
+    aoVivo: true,
+    destaque: (linhas) => {
+      if (!linhas.length) return SEM_RESUMO;
+      const total = linhas.reduce((s, l) => s + l.focos, 0);
+      const topo = linhas[0];
+      return `${fmt(total)} focos de calor em sete dias, e ${fmt(
+        topo.focos
+      )} deles só em ${topo.nome}.`;
     },
   },
   "homicidio-por-100mil": {
@@ -146,7 +178,14 @@ export const INDICADORES = {
   },
 };
 
-export const EIXOS = ["Saúde", "Educação", "Segurança", "Dinheiro público", "Atendimento ao cidadão"];
+export const EIXOS = [
+  "Saúde",
+  "Educação",
+  "Segurança",
+  "Meio ambiente",
+  "Dinheiro público",
+  "Atendimento ao cidadão",
+];
 
 export function fmt(v) {
   return v == null ? "sem dado" : v.toLocaleString("pt-BR", { maximumFractionDigits: 1 });

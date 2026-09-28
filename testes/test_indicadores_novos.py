@@ -12,7 +12,7 @@ def conn():
     with banco.conecta() as c:
         banco.aplica_esquema(c)
         c.execute(
-            "truncate manifestacao, ubs, leito, caso_dengue, ideb, matricula, despesa_funcao, unidade_saude, populacao, municipio, coleta"
+            "truncate manifestacao, ubs, leito, caso_dengue, ideb, matricula, despesa_funcao, unidade_saude, foco_queimada, populacao, municipio, coleta"
             " restart identity cascade"
         )
         banco.carrega_municipios(c)
@@ -447,3 +447,213 @@ def test_regioes_diferentes_nao_se_misturam(conn):
     unidade(conn, "111", codigo="5208707", regiao="Central")
     unidade(conn, "222", codigo="5200050", regiao="Norte")
     assert {l["regiao_saude"] for l in indicadores.por_regiao_de_saude(conn)} == {"Central", "Norte"}
+
+
+def foco(conn, id="f1", codigo="5208707", dia=27, hora=1, satelite="NOAA-20", frp=10.0):
+    from datetime import datetime
+
+    banco.grava_focos(
+        conn,
+        [(id, codigo, datetime(2026, 9, dia, hora, 0), satelite, "Cerrado", -16.7, -49.3, frp)],
+    )
+
+
+# Verifica que os focos do município são contados no período.
+def test_conta_focos_do_periodo(conn):
+    foco(conn, "f1", dia=27)
+    foco(conn, "f2", dia=26)
+    linha = indicadores.focos_por_municipio(conn, dias=7)[0]
+    assert linha["focos"] == 2
+    assert linha["dias_com_foco"] == 2
+
+
+# Verifica que foco mais velho que a janela fica de fora.
+def test_foco_fora_da_janela_nao_entra(conn):
+    foco(conn, "novo", dia=27)
+    foco(conn, "velho", dia=10)
+    assert indicadores.focos_por_municipio(conn, dias=7)[0]["focos"] == 1
+
+
+# Verifica que a janela conta a partir do foco mais recente do banco, e não do
+# relógio da máquina. Se a carga não rodou hoje, contar pelo relógio devolveria
+# lista vazia e o painel pareceria quebrado.
+def test_janela_conta_do_dado_e_nao_do_relogio(conn):
+    foco(conn, "f1", dia=20)
+    foco(conn, "f2", dia=21)
+    linha = indicadores.focos_por_municipio(conn, dias=7)[0]
+    assert (linha["codigo_ibge"], linha["focos"]) == ("5208707", 2)
+
+
+# Verifica que banco sem foco nenhum devolve lista vazia em vez de estourar.
+def test_sem_foco_devolve_vazio(conn):
+    assert indicadores.focos_por_municipio(conn) == []
+
+
+# Verifica que o número de satélites distintos é guardado. É o que sustenta a
+# ressalva: vários satélites veem o mesmo fogo, então o foco é piso e não conta
+# de incêndios distintos.
+def test_conta_satelites_distintos(conn):
+    foco(conn, "f1", satelite="NOAA-20")
+    foco(conn, "f2", satelite="NOAA-21")
+    foco(conn, "f3", satelite="NOAA-21")
+    assert indicadores.focos_por_municipio(conn)[0]["satelites"] == 2
+
+
+# Verifica que recarregar o mesmo foco não duplica, porque o identificador vem
+# do INPE. O arquivo do dia enche ao longo das horas e é buscado mais de uma vez.
+def test_recarregar_o_mesmo_foco_nao_duplica(conn):
+    foco(conn, "igual", frp=10.0)
+    foco(conn, "igual", frp=22.0)
+    linha = indicadores.focos_por_municipio(conn)[0]
+    assert linha["focos"] == 1
+    assert linha["potencia"] == pytest.approx(22.0)
+
+
+# Verifica que a série diária soma por dia e diz em quantos municípios.
+def test_serie_diaria_de_fogo(conn):
+    banco.grava_populacao(conn, [Populacao("5200050", 2025, 10000, "estimativa")])
+    foco(conn, "f1", codigo="5208707", dia=27)
+    foco(conn, "f2", codigo="5200050", dia=27)
+    foco(conn, "f3", codigo="5208707", dia=26)
+    serie = indicadores.serie_fogo(conn)
+    assert [(l["focos"], l["municipios"]) for l in serie] == [(1, 1), (2, 2)]
+
+
+# Verifica que a série de um município só traz aquele município.
+def test_serie_de_um_municipio(conn):
+    banco.grava_populacao(conn, [Populacao("5200050", 2025, 10000, "estimativa")])
+    foco(conn, "f1", codigo="5208707")
+    foco(conn, "f2", codigo="5200050")
+    assert indicadores.serie_fogo(conn, "5208707")[0]["focos"] == 1
+
+
+# Verifica que município sem foco nenhum aparece com zero, e não some da lista.
+# Zero foco é informação: quer dizer que o satélite não viu fogo ali. Sumir da
+# lista faria o painel dizer "sem dado publicado", que é outra coisa.
+def test_municipio_sem_foco_aparece_com_zero(conn):
+    banco.carrega_municipios(conn)
+    foco(conn, "f1", codigo="5208707")
+    linhas = indicadores.focos_por_municipio(conn)
+    assert len(linhas) == 246
+    zerados = [l for l in linhas if l["focos"] == 0]
+    assert len(zerados) == 245
+    assert zerados[0]["potencia"] == 0.0
+    assert zerados[0]["ultimo"] is None
+
+
+# Verifica que o conflito de cadastro é contado e exposto, em vez de escondido.
+# Unidade que diz "sempre aberto" e "só de manhã e à tarde" na mesma linha não
+# vira porta noturna, mas o painel precisa poder dizer quantas são.
+def test_conta_o_conflito_de_cadastro(conn):
+    banco.grava_unidades(
+        conn,
+        [("c1", "5208707", "CS X", "POSTO DE SAUDE",
+          "ATENDIMENTOS NOS TURNOS DA MANHA E A TARDE", False, True, False, 0,
+          -16.7, -49.3, "Central", "Centro Oeste")],
+    )
+    linha = indicadores.unidades_por_turno(conn)[0]
+    assert (linha["conflito"], linha["noturnas"], linha["fim_de_semana"]) == (1, 0, 0)
+
+
+# Verifica que município que tem porta noturna fica com zero quilômetro, e não
+# com nulo. Zero é "tem porta em casa"; nulo o mapa pinta de hachura, que quer
+# dizer sem dado, e são coisas diferentes.
+def test_quem_tem_porta_noturna_fica_com_zero_km(conn):
+    banco.carrega_municipios(conn)
+    unidade(conn, "n1", codigo="5208707", noite=True)
+    linha = [l for l in indicadores.km_ate_porta_noturna(conn) if l["codigo_ibge"] == "5208707"][0]
+    assert linha["km"] == 0
+    assert linha["destino"] is None
+
+
+# Verifica a conta de distância com um caso conhecido: um grau de latitude são
+# cerca de 111 km na superfície da Terra.
+def test_distancia_de_um_grau_de_latitude(conn):
+    banco.carrega_municipios(conn)
+    banco.grava_unidades(
+        conn,
+        [
+            ("orig", "5200050", "CS ORIGEM", "POSTO DE SAUDE", "MANHA E A TARDE",
+             False, False, False, 5, -16.0, -49.0, "Central", "Centro Oeste"),
+            ("dest", "5208707", "CS DESTINO", "POSTO DE SAUDE", "NOITE",
+             True, False, False, 5, -17.0, -49.0, "Central", "Centro Oeste"),
+        ],
+    )
+    linha = [l for l in indicadores.km_ate_porta_noturna(conn) if l["codigo_ibge"] == "5200050"][0]
+    assert linha["km"] == pytest.approx(111.2, abs=0.5)
+    assert linha["destino"] == "Goiânia"
+    assert linha["unidade_destino"] == "CS DESTINO"
+
+
+# Verifica que a porta mais próxima vence, e não a primeira encontrada.
+def test_escolhe_a_porta_mais_proxima(conn):
+    banco.carrega_municipios(conn)
+    banco.grava_unidades(
+        conn,
+        [
+            ("orig", "5200050", "CS ORIGEM", "POSTO", "DIA", False, False, False, 5,
+             -16.0, -49.0, "Central", "Centro Oeste"),
+            ("longe", "5208707", "CS LONGE", "POSTO", "NOITE", True, False, False, 5,
+             -20.0, -49.0, "Central", "Centro Oeste"),
+            ("perto", "5201108", "CS PERTO", "POSTO", "NOITE", True, False, False, 5,
+             -16.5, -49.0, "Central", "Centro Oeste"),
+        ],
+    )
+    linha = [l for l in indicadores.km_ate_porta_noturna(conn) if l["codigo_ibge"] == "5200050"][0]
+    assert linha["unidade_destino"] == "CS PERTO"
+    assert linha["km"] == pytest.approx(55.6, abs=0.5)
+
+
+# Verifica que coordenada idêntica não derruba a consulta. O cadastro tem pares
+# repetidos, e a lei dos cossenos estoura quando o arredondamento passa de 1.
+def test_coordenada_identica_da_zero_e_nao_erro(conn):
+    banco.carrega_municipios(conn)
+    banco.grava_unidades(
+        conn,
+        [
+            ("orig", "5200050", "CS ORIGEM", "POSTO", "DIA", False, False, False, 5,
+             -16.0, -49.0, "Central", "Centro Oeste"),
+            ("dest", "5208707", "CS DESTINO", "POSTO", "NOITE", True, False, False, 5,
+             -16.0, -49.0, "Central", "Centro Oeste"),
+        ],
+    )
+    linha = [l for l in indicadores.km_ate_porta_noturna(conn) if l["codigo_ibge"] == "5200050"][0]
+    assert linha["km"] == pytest.approx(0.0, abs=0.01)
+
+
+# Verifica que o indicador diz se a porta de destino tem leito de retaguarda.
+# Chegar numa unidade básica de madrugada é diferente de chegar num hospital.
+def test_diz_se_o_destino_tem_leito(conn):
+    banco.carrega_municipios(conn)
+    banco.grava_leitos(conn, [("5208707", "0000001", "UTI", "2026-01-01", 10, 4)])
+    banco.grava_unidades(
+        conn,
+        [
+            ("orig", "5200050", "CS ORIGEM", "POSTO", "DIA", False, False, False, 5,
+             -16.0, -49.0, "Central", "Centro Oeste"),
+            ("dest", "5208707", "CS DESTINO", "POSTO", "NOITE", True, False, False, 5,
+             -16.5, -49.0, "Central", "Centro Oeste"),
+        ],
+    )
+    linha = [l for l in indicadores.km_ate_porta_noturna(conn) if l["codigo_ibge"] == "5200050"][0]
+    assert linha["leito_no_destino"] is True
+
+
+# Verifica que coordenada absurda no cadastro não derruba a consulta inteira.
+# O teto do haversine existe para isso: sem ele, um par de pontos quase opostos
+# faz o arredondamento passar de 1 e o asin estoura, levando junto o indicador
+# dos 246 municípios por causa de um erro de digitação em um só.
+def test_coordenada_absurda_nao_derruba_o_indicador(conn):
+    banco.carrega_municipios(conn)
+    banco.grava_unidades(
+        conn,
+        [
+            ("orig", "5200050", "CS ORIGEM", "POSTO", "DIA", False, False, False, 5,
+             89.999999, -49.0, "Central", "Centro Oeste"),
+            ("dest", "5208707", "CS DESTINO", "POSTO", "NOITE", True, False, False, 5,
+             -89.999999, 131.0, "Central", "Centro Oeste"),
+        ],
+    )
+    linha = [l for l in indicadores.km_ate_porta_noturna(conn) if l["codigo_ibge"] == "5200050"][0]
+    # meia volta na Terra: o teto segura em vez de estourar
+    assert linha["km"] == pytest.approx(20015, abs=50)

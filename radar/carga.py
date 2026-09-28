@@ -1,10 +1,11 @@
 import tempfile
 from collections import Counter
+from datetime import date, timedelta
 from pathlib import Path
 from urllib.parse import quote
 
 from radar import banco, municipios
-from radar.fontes import ckan_go, ibge, ideb, inep, ms_cnes, siconfi, sinesp
+from radar.fontes import ckan_go, ibge, ideb, inep, inpe_fogo, ms_cnes, siconfi, sinesp
 
 
 def executa(conn, cliente) -> dict:
@@ -159,3 +160,33 @@ def executa_ideb(conn, cliente, ano: int = 2025, pasta=None) -> dict:
         etapas[etapa] = len(notas)
         gravadas += banco.grava_ideb(conn, notas, coleta)
     return {"ideb": gravadas, **etapas}
+
+
+def executa_fogo(conn, cliente, dias: int = 7, hoje: date | None = None) -> dict:
+    """Busca os focos de calor dos últimos dias, um arquivo por dia.
+
+    Esta é a única fonte do projeto que muda dentro do mesmo dia, então ela é
+    feita para rodar de novo: o arquivo de hoje enche ao longo das horas e cada
+    passagem de satélite acrescenta foco. O identificador vem do INPE, então
+    repetir a busca atualiza em vez de duplicar.
+    """
+    banco.aplica_esquema(conn)
+    banco.carrega_municipios(conn)
+    hoje = hoje or date.today()
+    gravados, por_dia = 0, {}
+    for atras in range(dias):
+        dia = hoje - timedelta(days=atras)
+        url = inpe_fogo.url_focos(dia)
+        try:
+            resposta = cliente.texto(url, timeout=90)
+        except Exception as erro:
+            # dia sem arquivo publicado não derruba a carga dos outros
+            por_dia[dia.isoformat()] = f"sem arquivo ({type(erro).__name__})"
+            continue
+        focos = inpe_fogo.le_focos(resposta.payload)
+        coleta = banco.grava_coleta(
+            conn, "inpe-fogo", resposta.url, resposta.status, resposta.bytes
+        )
+        gravados += banco.grava_focos(conn, focos, coleta)
+        por_dia[dia.isoformat()] = len(focos)
+    return {"focos": gravados, **por_dia}

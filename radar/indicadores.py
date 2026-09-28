@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from psycopg.rows import dict_row
 
 # a população mais recente vale como denominador de qualquer ano, e o resultado
@@ -326,6 +328,7 @@ select u.codigo_ibge, m.nome,
        count(*)::int as unidades,
        count(*) filter (where u.noite)::int as noturnas,
        count(*) filter (where u.fim_de_semana)::int as fim_de_semana,
+       count(*) filter (where u.sempre_aberto and not u.noite)::int as conflito,
        round(100.0 * count(*) filter (where u.noite) / count(*), 1)::float8 as pct_noturnas,
        max(u.regiao_saude) as regiao_saude,
        p.habitantes, p.ano as ano_populacao, p.base as base_populacional,
@@ -369,4 +372,126 @@ order by por_10mil desc
 def por_regiao_de_saude(conn, base: str = "estimativa") -> list[dict]:
     with conn.cursor(row_factory=dict_row) as cur:
         return cur.execute(POR_REGIAO_DE_SAUDE, (base,)).fetchall()
+
+
+# Foco é detecção de satélite, não incêndio: doze satélites cobrem o Brasil e
+# vários veem o mesmo fogo. O número é absoluto de propósito, porque queimada é
+# fenômeno de território e dividir por habitante não diria nada.
+FOCOS_POR_MUNICIPIO = """
+with pop as (
+    select distinct on (codigo_ibge) codigo_ibge, ano, habitantes, base
+    from populacao where base = %s order by codigo_ibge, ano desc
+)
+select m.codigo_ibge, m.nome,
+       count(f.id)::int as focos,
+       count(distinct f.satelite)::int as satelites,
+       count(distinct date(f.detectado_em))::int as dias_com_foco,
+       coalesce(round(sum(f.frp)::numeric, 1), 0)::float8 as potencia,
+       max(f.detectado_em) as ultimo,
+       max(f.bioma) as bioma,
+       max(p.habitantes) as habitantes,
+       max(p.ano) as ano_populacao
+from municipio m
+left join foco_queimada f
+       on f.codigo_ibge = m.codigo_ibge and f.detectado_em >= %s
+left join pop p on p.codigo_ibge = m.codigo_ibge
+group by m.codigo_ibge, m.nome
+order by focos desc, m.nome
+"""
+
+
+def _ultimo_foco(conn):
+    return conn.execute("select max(detectado_em) from foco_queimada").fetchone()[0]
+
+
+def focos_por_municipio(conn, dias: int = 7, base: str = "estimativa") -> list[dict]:
+    # a janela conta a partir do foco mais recente que existe no banco, e não do
+    # relógio: se a carga não rodou hoje, contar do relógio devolveria vazio
+    ultimo = _ultimo_foco(conn)
+    if ultimo is None:
+        return []
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(
+            FOCOS_POR_MUNICIPIO, (base, ultimo - timedelta(days=dias))
+        ).fetchall()
+
+
+SERIE_FOGO = """
+select date(detectado_em) as dia,
+       count(*)::int as focos,
+       count(distinct codigo_ibge)::int as municipios,
+       round(sum(frp)::numeric, 1)::float8 as potencia
+from foco_queimada
+where (%s::text is null or codigo_ibge = %s::text)
+group by date(detectado_em)
+order by dia
+"""
+
+
+def serie_fogo(conn, codigo_ibge: str | None = None) -> list[dict]:
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(SERIE_FOGO, (codigo_ibge, codigo_ibge)).fetchall()
+
+
+# A primeira medida de distância do projeto, e ela não precisou de dependência
+# nova: haversine em SQL puro, sem PostGIS.
+#
+# A origem é a média das coordenadas das unidades do município, e não o centro
+# geométrico do território. Unidade de saúde segue gente, então essa média fica
+# mais perto de onde as pessoas moram do que o meio do mapa.
+#
+# Usa asin e não a lei dos cossenos de propósito: existem pares de coordenada
+# idênticos no cadastro, e o acos de um valor que passa de 1 por arredondamento
+# derruba a consulta inteira.
+KM_ATE_PORTA_NOTURNA = """
+with pop as (
+    select distinct on (codigo_ibge) codigo_ibge, ano, habitantes, base
+    from populacao where base = %s order by codigo_ibge, ano desc
+),
+centro as (
+    select codigo_ibge, avg(latitude) as lat, avg(longitude) as lon,
+           count(*) filter (where noite)::int as noturnas,
+           count(*) filter (where sempre_aberto and not noite)::int as conflito
+    from unidade_saude
+    where latitude is not null and longitude is not null
+    group by codigo_ibge
+),
+porta as (
+    select codigo_ibge, nome, latitude as lat, longitude as lon
+    from unidade_saude
+    where noite and latitude is not null and longitude is not null
+),
+perto as (
+    select distinct on (c.codigo_ibge)
+           c.codigo_ibge, p.codigo_ibge as destino, p.nome as unidade_destino,
+           2 * 6371 * asin(sqrt(least(1.0,
+               sin(radians(p.lat - c.lat) / 2) ^ 2
+               + cos(radians(c.lat)) * cos(radians(p.lat))
+                 * sin(radians(p.lon - c.lon) / 2) ^ 2))) as km
+    from centro c
+    join porta p on true
+    where c.noturnas = 0
+    order by c.codigo_ibge, km
+)
+select m.codigo_ibge, m.nome,
+       case when c.noturnas > 0 then 0
+            else round(x.km::numeric, 1)::float8 end as km,
+       coalesce(c.noturnas, 0)::int as noturnas,
+       coalesce(c.conflito, 0)::int as conflito,
+       d.nome as destino, x.unidade_destino,
+       exists (select 1 from leito l
+               where l.codigo_ibge = x.destino and l.implantados > 0) as leito_no_destino,
+       p.habitantes, p.ano as ano_populacao, p.base as base_populacional
+from municipio m
+left join centro c on c.codigo_ibge = m.codigo_ibge
+left join perto x on x.codigo_ibge = m.codigo_ibge
+left join municipio d on d.codigo_ibge = x.destino
+left join pop p on p.codigo_ibge = m.codigo_ibge
+order by km desc nulls last, m.nome
+"""
+
+
+def km_ate_porta_noturna(conn, base: str = "estimativa") -> list[dict]:
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(KM_ATE_PORTA_NOTURNA, (base,)).fetchall()
 

@@ -123,13 +123,44 @@ def test_plantao_de_24_horas_conta_como_noite():
     assert u.noite is True and u.sempre_aberto is True
 
 
-# Verifica que unidade sempre aberta conta como fim de semana. A fonte não
-# escreve sábado nem domingo para ela: simplesmente não gera linha de dia
-# nenhum, e ler isso como "não abre" inverteria o sentido.
-def test_sempre_aberta_conta_como_fim_de_semana():
-    u = le_unidades(payload([registro(sempre_aberto="S", dia="")]))[0]
+# Verifica que unidade sempre aberta de verdade conta como fim de semana. A
+# fonte não escreve sábado nem domingo para ela: simplesmente não gera linha de
+# dia nenhum, e ler isso como "não abre" inverteria o sentido.
+def test_sempre_aberta_de_verdade_conta_como_fim_de_semana():
+    vinte_e_quatro = (
+        "ATENDIMENTO CONTINUO DE 24 HORAS/DIA"
+        " (PLANTAO:INCLUI SABADOS, DOMINGOS E FERIADOS)"
+    )
+    u = le_unidades(payload([registro(sempre_aberto="S", turno=vinte_e_quatro, dia="")]))[0]
     assert u.fim_de_semana is True
     assert u.dias == 7
+
+
+# Verifica o conflito de cadastro: 29 unidades dizem "sempre aberto" e, na
+# mesma linha, dizem atender só de manhã e à tarde. Os dois campos brigam, e
+# acreditar só no sinalizador marcava as 29 como abertas no sábado, inflando a
+# conta de 116 para 145. Quando eles se contradizem, vale o turno.
+def test_sempre_aberto_que_briga_com_o_turno_nao_vira_fim_de_semana():
+    u = le_unidades(
+        payload([
+            registro(
+                sempre_aberto="S",
+                turno="ATENDIMENTOS NOS TURNOS DA MANHA E A TARDE",
+                dia="",
+            )
+        ])
+    )[0]
+    assert u.fim_de_semana is False
+    assert u.dias == 0
+
+
+# Verifica que o sábado de verdade continua valendo mesmo com o conflito, porque
+# aí existe evidência e não só um sinalizador.
+def test_sabado_real_vence_o_conflito():
+    p = payload([
+        registro(sempre_aberto="S", turno="ATENDIMENTOS NOS TURNOS DA MANHA E A TARDE", dia="Sábado"),
+    ])
+    assert le_unidades(p)[0].fim_de_semana is True
 
 
 # Verifica que sábado ou domingo na lista de dias marca fim de semana.

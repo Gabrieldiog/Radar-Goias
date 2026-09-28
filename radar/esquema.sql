@@ -123,3 +123,18 @@ create table if not exists unidade_saude (
 
 create index if not exists unidade_saude_municipio on unidade_saude (codigo_ibge);
 create index if not exists unidade_saude_regiao on unidade_saude (regiao_saude);
+
+create table if not exists foco_queimada (
+    id           text primary key,
+    codigo_ibge  text      not null references municipio,
+    detectado_em timestamp not null,
+    satelite     text      not null,
+    bioma        text      not null,
+    latitude     double precision not null,
+    longitude    double precision not null,
+    frp          double precision,
+    coleta_id    bigint    references coleta
+);
+
+create index if not exists foco_queimada_quando on foco_queimada (detectado_em);
+create index if not exists foco_queimada_municipio on foco_queimada (codigo_ibge, detectado_em);

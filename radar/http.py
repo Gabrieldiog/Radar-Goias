@@ -51,6 +51,13 @@ class Cliente:
         r.raise_for_status()
         return Resposta(r.json(), r.status_code, len(r.content), str(r.url))
 
+    def texto(self, url: str, timeout: float | None = None) -> Resposta:
+        """Para fonte que responde CSV em vez de JSON."""
+        self._aguarda(httpx.URL(url).host)
+        r = self._http.get(url, timeout=timeout or self._http.timeout)
+        r.raise_for_status()
+        return Resposta(r.text, r.status_code, len(r.content), str(r.url))
+
     def arquivo(self, url: str, destino, tentativas: int = 1) -> Resposta:
         """Baixa um arquivo grande em pedaços, sem carregar tudo na memória.
 

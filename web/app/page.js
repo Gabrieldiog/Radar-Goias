@@ -259,6 +259,13 @@ export default function Painel() {
               <>
                 <p className="manchete">{meta.destaque(linhas, 246)}</p>
 
+                {resposta.meta.ressalva && (
+                  <p className="ressalva">
+                    <span className="selo">{meta.aoVivo ? "atualiza todo dia" : "ressalva"}</span>
+                    {resposta.meta.ressalva}
+                  </p>
+                )}
+
                 {porOrgao ? (
                   <Tabela linhas={linhas} />
                 ) : (

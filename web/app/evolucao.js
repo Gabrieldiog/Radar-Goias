@@ -40,7 +40,8 @@ export default function Evolucao({ serie, onde }) {
 
   return (
     <div>
-      <svg viewBox={`0 0 ${largura} ${altura}`} className="grafico" role="img"
+      <div className="grafico-caixa">
+        <svg viewBox={`0 0 ${largura} ${altura}`} className="grafico" role="img"
            aria-label={`Casos de dengue por ano em ${onde}`}>
         <text x={margem.esquerda} y={16} className="eixo-titulo">
           Casos notificados{escala > 1 ? ", em milhares" : ""}
@@ -69,6 +70,7 @@ export default function Evolucao({ serie, onde }) {
           );
         })}
       </svg>
+      </div>
 
       <div className="legenda-cores">
         <span><i style={{ background: OURO }} /> pior ano da série</span>

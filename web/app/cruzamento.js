@@ -76,7 +76,8 @@ export default function Cruzamento({ pontos, x, y, selecionado }) {
         Nos {primeiro.quantos} com menor, são {num(primeiro.valor)}. {veredito}
       </p>
 
-      <svg viewBox={`0 0 ${largura} ${altura}`} className="grafico" role="img"
+      <div className="grafico-caixa">
+        <svg viewBox={`0 0 ${largura} ${altura}`} className="grafico" role="img"
            aria-label={`${y.rotulo} de cada grupo de municípios, agrupados por ${x.curto}`}>
         <text x={margem.esquerda} y={16} className="eixo-titulo">
           {y.rotulo}, em {y.unidade}
@@ -111,6 +112,7 @@ export default function Cruzamento({ pontos, x, y, selecionado }) {
           maior {x.curto}
         </text>
       </svg>
+      </div>
 
       <p className="aviso">
         A altura é o valor do meio do grupo, a mediana, e não a média: uma cidade de dois mil

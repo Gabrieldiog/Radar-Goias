@@ -98,7 +98,7 @@ body {
   font-family: var(--display), var(--fonte), sans-serif;
   font-weight: 700;
   font-size: clamp(2.3rem, 5.4vw, 3.4rem);
-  line-height: 0.96;
+  line-height: 1.04;
   letter-spacing: -0.03em;
   margin: 0 0 14px;
   max-width: 17ch;
@@ -741,4 +741,31 @@ p { max-width: 68ch; }
   border-radius: 100px;
   padding: 2px 9px;
   white-space: nowrap;
+}
+
+/* O gráfico tem viewBox de 940. Numa tela de 390 ele encolhe para 37% e o
+   número escrito em cima da barra vira borrão de 4px. Em vez de espremer, ele
+   rola: mesmo tratamento que as tabelas largas já recebem. */
+.grafico-caixa { overflow-x: auto; }
+
+@media (max-width: 760px) {
+  .grafico { min-width: 620px; }
+
+  /* a fita das abas rola, e o esmaecimento à direita avisa que tem mais */
+  .abas {
+    mask-image: linear-gradient(to right, #000 88%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, #000 88%, transparent 100%);
+  }
+}
+
+/* Tabela larga rola, mas sem aviso ninguém descobre. O esmaecimento à direita
+   diz que tem mais coisa, do mesmo jeito que na fita das abas. */
+.rolagem, .decomposicao {
+  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent 100%);
+}
+
+/* quando cabe tudo, o esmaecimento some para não comer a última coluna */
+@media (min-width: 1100px) {
+  .rolagem, .decomposicao { mask-image: none; -webkit-mask-image: none; }
 }

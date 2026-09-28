@@ -62,7 +62,8 @@ export default function Aprendizagem({ serie, onde }) {
     <div>
       <p className="veredito">{diagnostico(serie)}</p>
 
-      <svg viewBox={`0 0 ${largura} ${altura}`} className="grafico" role="img"
+      <div className="grafico-caixa">
+        <svg viewBox={`0 0 ${largura} ${altura}`} className="grafico" role="img"
            aria-label={`IDEB por ano em ${onde}`}>
         <text x={margem.esquerda} y={16} className="eixo-titulo">
           IDEB, numa escala que vai até 10
@@ -87,6 +88,7 @@ export default function Aprendizagem({ serie, onde }) {
           );
         })}
       </svg>
+      </div>
 
       <div className="decomposicao">
         <table className="tabela">

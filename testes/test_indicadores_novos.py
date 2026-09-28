@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 from radar import banco, indicadores
@@ -657,3 +659,20 @@ def test_coordenada_absurda_nao_derruba_o_indicador(conn):
     linha = [l for l in indicadores.km_ate_porta_noturna(conn) if l["codigo_ibge"] == "5200050"][0]
     # meia volta na Terra: o teto segura em vez de estourar
     assert linha["km"] == pytest.approx(20015, abs=50)
+
+
+# Verifica que a página de procedência não esquece tabela nenhuma. A consulta
+# tem uma lista fixa de tabelas, e quando entrou uma fonte nova ela ficou de
+# fora em silêncio: a tela que promete rastrear tudo estava omitindo duas.
+def test_procedencia_cobre_toda_tabela_com_coleta(conn):
+    com_coleta = {
+        t for (t,) in conn.execute(
+            "select table_name from information_schema.columns"
+            " where column_name = 'coleta_id' and table_schema = 'public'"
+        ).fetchall()
+    }
+    faltando = sorted(
+        t for t in com_coleta
+        if not re.search(rf"\bfrom\s+{t}\b", indicadores.FRESCOR)
+    )
+    assert not faltando, "tabela com procedência que a tela não mostra: " + ", ".join(faltando)

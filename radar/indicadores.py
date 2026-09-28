@@ -287,6 +287,9 @@ from (
     union all select 'Ocorrências criminais', count(*)::int, max(coleta_id) from ocorrencia
     union all select 'Matrículas do censo escolar', count(*)::int, max(coleta_id) from matricula
     union all select 'IDEB', count(*)::int, max(coleta_id) from ideb
+    union all select 'Unidades de saúde, uma a uma', count(*)::int, max(coleta_id)
+        from unidade_saude
+    union all select 'Focos de queimada', count(*)::int, max(coleta_id) from foco_queimada
     union all select 'População', count(*)::int, max(coleta_id) from populacao
 ) t
 left join coleta c on c.id = t.coleta

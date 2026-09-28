@@ -267,7 +267,9 @@ export default function Painel() {
                 )}
 
                 {porOrgao ? (
-                  <Tabela linhas={linhas} />
+                  <div className="rolagem">
+                    <Tabela linhas={linhas} />
+                  </div>
                 ) : (
                   <>
                     <Cobertura
@@ -314,8 +316,6 @@ export default function Painel() {
                               <li
                                 key={l.codigo_ibge}
                                 ref={l.codigo_ibge === selecionado ? escolhida : null}
-                                onClick={() => setSelecionado(l.codigo_ibge)}
-                                aria-current={l.codigo_ibge === selecionado}
                               >
                                 <span
                                   className="fundo"
@@ -323,9 +323,17 @@ export default function Painel() {
                                     width: `calc(${((l[meta.campo] ?? 0) / maiorValor) * 100}% - 42px)`,
                                   }}
                                 />
-                                <span className="pos">{l.posicao}</span>
-                                <span>{l.nome}</span>
-                                <span className="valor">{fmt(l[meta.campo])}</span>
+                                {/* botão, e não li com onClick: só assim a lista
+                                    entra na ordem do Tab e responde a Enter */}
+                                <button
+                                  type="button"
+                                  onClick={() => setSelecionado(l.codigo_ibge)}
+                                  aria-current={l.codigo_ibge === selecionado ? "true" : undefined}
+                                >
+                                  <span className="pos">{l.posicao}</span>
+                                  <span>{l.nome}</span>
+                                  <span className="valor">{fmt(l[meta.campo])}</span>
+                                </button>
                               </li>
                             ))}
                           </ol>

@@ -12,6 +12,10 @@
 
   --ouro: #b3820f;
   --ouro-claro: #e0a93a;
+  /* o ouro da marca dá 3,13:1 no papel: serve de barra e de anel, não de letra */
+  --ouro-texto: #8a6408;
+  /* a borda é o único sinal de que aquilo é controle, e 1,82:1 não sinaliza */
+  --borda-controle: #75878a;
   --alarme: #8c2f18;
 
   --r0: #e4e9e7;
@@ -224,7 +228,7 @@ p { max-width: 68ch; }
   font: inherit;
   font-size: 0.88rem;
   padding: 7px 14px;
-  border: 1px solid var(--linha-forte);
+  border: 1px solid var(--borda-controle);
   border-radius: 100px;
   background: var(--papel-alto);
   color: var(--tinta-suave);
@@ -269,13 +273,12 @@ p { max-width: 68ch; }
   transition: transform 0.1s ease;
 }
 
-/* as iniciais são pista, não identificador: ficam em baixo contraste para não
-   competir com a cor, que é quem carrega o valor */
-.celula.n0, .celula.n1, .celula.n2 { color: rgba(15, 26, 28, 0.55); }
-.celula.n3, .celula.n4 { color: rgba(255, 255, 255, 0.7); }
-.celula.sem { color: rgba(15, 26, 28, 0.42); }
+/* as iniciais são pista, não identificador: ficam um grau abaixo da cor, que é
+   quem carrega o valor, mas acima do mínimo legível */
+.celula.n0, .celula.n1, .celula.n2 { color: rgba(15, 26, 28, 0.8); }
+.celula.n3, .celula.n4 { color: #fff; }
 
-.celula:hover { transform: scale(1.12); }
+.celula:hover { transform: scale(1.12); z-index: 1; }
 .celula.escolhida { outline: 2px solid var(--ouro); outline-offset: 1px; z-index: 1; }
 
 .oculto {
@@ -287,20 +290,20 @@ p { max-width: 68ch; }
   white-space: nowrap;
 }
 
-/* mesma hachura do mapa: sem dado tem uma linguagem só no painel inteiro */
+/* Mesma hachura do mapa, e o traço passou de #d6dedf para #608581 porque o
+   anterior dava 1,03:1 contra o degrau mais claro: "sem dado" e "valor baixo"
+   eram a mesma mancha. O quadrinho continua clicável, porque clicar nele é o
+   único jeito de ver a frase que diz que sem dado é diferente de zero. */
 .celula.sem {
+  color: var(--tinta);
   background: repeating-linear-gradient(
     45deg,
     #eef2f2,
-    #eef2f2 2px,
-    #d6dedf 2px,
-    #d6dedf 3px
+    #eef2f2 5.2px,
+    #608581 5.2px,
+    #608581 6px
   );
-  border: 0;
-  cursor: default;
 }
-
-.celula.sem:hover { transform: none; }
 
 .cobertura-nota {
   margin: 12px 0 0;
@@ -320,8 +323,25 @@ p { max-width: 68ch; }
 }
 
 .mapa { width: 100%; height: auto; display: block; }
-.mapa path { cursor: pointer; transition: stroke-width 0.1s ease; }
+
+/* A divisa não pode ser da cor do papel: contra a hachura dava 1,22:1 e o
+   estado inteiro virava uma mancha só no indicador que tem muito sem dado. */
+.mapa path {
+  cursor: pointer;
+  stroke: var(--linha-forte);
+  stroke-width: 0.5;
+  transition: stroke-width 0.1s ease;
+}
+
 .mapa path:hover { stroke: var(--tinta); stroke-width: 1.4; }
+
+/* o escolhido usa o mesmo ouro do quadrinho, e não perde a marca sob o cursor */
+.mapa path.escolhido,
+.mapa path.escolhido:hover {
+  stroke: var(--ouro);
+  stroke-width: 2.6;
+  vector-effect: non-scaling-stroke;
+}
 
 .legenda { margin-top: 20px; font-size: 0.83rem; color: var(--tinta-suave); }
 .escala { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -346,14 +366,25 @@ p { max-width: 68ch; }
 
 .ranking li {
   position: relative;
+  border-bottom: 1px solid var(--linha);
+  font-size: 0.91rem;
+}
+
+/* a linha inteira é o botão: assim o Tab alcança, o Enter aciona e o foco
+   visível vem de graça da regra global */
+.ranking li > button {
+  font: inherit;
+  color: inherit;
   display: grid;
   grid-template-columns: 30px 1fr auto;
   gap: 12px;
   align-items: baseline;
+  width: 100%;
   padding: 9px 8px 9px 0;
-  border-bottom: 1px solid var(--linha);
+  background: none;
+  border: 0;
+  text-align: left;
   cursor: pointer;
-  font-size: 0.91rem;
 }
 
 /* a barra vive atrás do texto, então ela dá a proporção sem roubar espaço */
@@ -368,17 +399,18 @@ p { max-width: 68ch; }
 
 .ranking li:hover { background: var(--papel-alto); }
 
-.ranking li[aria-current="true"] {
+/* sem padding-left aqui: ele empurrava a linha escolhida 9px para a direita e
+   tirava as 246 do prumo */
+.ranking li:has([aria-current="true"]) {
   background: var(--papel-alto);
   box-shadow: inset 3px 0 0 var(--ouro);
-  padding-left: 9px;
 }
 
-.ranking li[aria-current="true"] .fundo { background: var(--ouro); opacity: 1; }
+.ranking li:has([aria-current="true"]) .fundo { background: var(--ouro); opacity: 1; }
 
 .ranking .pos {
   font-family: var(--mono), monospace;
-  color: var(--tinta-clara);
+  color: var(--tinta-suave);
   font-size: 11px;
   text-align: right;
 }
@@ -419,7 +451,7 @@ p { max-width: 68ch; }
   text-transform: none;
   color: var(--tinta);
   padding: 9px 12px;
-  border: 1px solid var(--linha-forte);
+  border: 1px solid var(--borda-controle);
   border-radius: 3px;
   background: var(--papel-alto);
   max-width: 40ch;
@@ -429,7 +461,7 @@ p { max-width: 68ch; }
 
 .grafico { width: 100%; height: auto; display: block; margin-top: 20px; }
 .grafico .eixo { font-family: var(--mono), monospace; font-size: 11px; fill: var(--tinta-suave); }
-.grafico .eixo-nota { font-family: var(--mono), monospace; font-size: 9.5px; fill: var(--tinta-clara); }
+.grafico .eixo-nota { font-family: var(--mono), monospace; font-size: 9.5px; fill: var(--tinta-suave); }
 
 .grafico .eixo-titulo {
   font-family: var(--mono), monospace;
@@ -528,7 +560,7 @@ p { max-width: 68ch; }
 }
 
 .duelo thead th a { color: var(--tinta); text-decoration: none; border-bottom: 1px solid var(--linha-forte); }
-.duelo thead th a:hover { color: var(--ouro); border-bottom-color: var(--ouro); }
+.duelo thead th a:hover { color: var(--ouro-texto); border-bottom-color: var(--ouro-texto); }
 
 .duelo tbody th {
   text-align: left;
@@ -547,9 +579,13 @@ p { max-width: 68ch; }
   margin-top: 2px;
 }
 
+/* o recuo de 13px fica em TODA célula, e não só na vencedora: quando só ela
+   recuava, a barra dela desenhava 13px a menos e um par com menos de 4% de
+   diferença saía invertido na tela, justamente o par que o leitor não julga
+   sozinho */
 .duelo td.lado {
   width: 33%;
-  padding: 16px 16px 16px 0;
+  padding: 16px 16px 16px 13px;
   border-bottom: 1px solid var(--linha);
   vertical-align: top;
 }
@@ -566,7 +602,8 @@ p { max-width: 68ch; }
 .duelo .barra { display: block; height: 7px; background: var(--r0); margin: 10px 0 7px; }
 .duelo .barra i { display: block; height: 100%; background: var(--r2); }
 .duelo td.vence .barra i { background: var(--r4); }
-.duelo td.vence { box-shadow: inset 3px 0 0 var(--ouro); padding-left: 13px; }
+.duelo td.vence { box-shadow: inset 3px 0 0 var(--ouro); }
+.duelo thead th:not(:first-child) { padding-left: 13px; }
 
 .duelo .lugar {
   display: block;
@@ -641,10 +678,10 @@ p { max-width: 68ch; }
   padding-bottom: 2px;
 }
 
-.voltar:hover { color: var(--ouro); border-bottom-color: var(--ouro); }
+.voltar:hover { color: var(--ouro-texto); border-bottom-color: var(--ouro-texto); }
 
 .rodape a { color: var(--tinta); text-decoration: underline; text-underline-offset: 2px; }
-.rodape a:hover { color: var(--ouro); }
+.rodape a:hover { color: var(--ouro-texto); }
 
 /* ============ avisos ============ */
 
@@ -702,13 +739,12 @@ p { max-width: 68ch; }
   padding: 6px 10px;
   width: 11rem;
   max-width: 55%;
-  border: 1px solid var(--linha-forte);
+  border: 1px solid var(--borda-controle);
   border-radius: 3px;
   background: var(--papel-alto);
 }
 
-.ranking-topo input::placeholder { color: var(--tinta-clara); }
-.ranking-topo input:focus { border-color: var(--ouro); }
+.ranking-topo input::placeholder { color: var(--tinta-suave); }
 
 .ranking-conta {
   margin: 0 0 8px;
@@ -736,36 +772,70 @@ p { max-width: 68ch; }
   font-size: 9.5px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--ouro);
-  border: 1px solid var(--ouro);
+  color: var(--ouro-texto);
+  border: 1px solid var(--ouro-texto);
   border-radius: 100px;
   padding: 2px 9px;
   white-space: nowrap;
 }
 
-/* O gráfico tem viewBox de 940. Numa tela de 390 ele encolhe para 37% e o
+/* O gráfico tem viewBox de 940. Encolhido para 37% numa tela de celular, o
    número escrito em cima da barra vira borrão de 4px. Em vez de espremer, ele
-   rola: mesmo tratamento que as tabelas largas já recebem. */
+   mantém o tamanho do desenho e rola. */
 .grafico-caixa { overflow-x: auto; }
 
-@media (max-width: 760px) {
-  .grafico { min-width: 620px; }
+@media (max-width: 900px) {
+  .grafico { min-width: 940px; }
+}
 
-  /* a fita das abas rola, e o esmaecimento à direita avisa que tem mais */
+/* Caixa que rola precisa dizer que rola, e o aviso tem que sumir sozinho
+   quando não há o que rolar. Os dois primeiros planos são do tamanho do papel e
+   ficam presos ao conteúdo; os dois de sombra ficam presos à moldura. Quando a
+   tabela cabe, os do papel cobrem as sombras e nada aparece. */
+.rolagem, .decomposicao, .grafico-caixa {
+  background:
+    linear-gradient(90deg, var(--papel) 30%, rgba(242, 245, 245, 0)) 0 0 / 34px 100% no-repeat,
+    linear-gradient(-90deg, var(--papel) 30%, rgba(242, 245, 245, 0)) 100% 0 / 34px 100% no-repeat,
+    radial-gradient(farthest-side at 0 50%, rgba(15, 26, 28, 0.16), rgba(15, 26, 28, 0)) 0 0 / 14px 100% no-repeat,
+    radial-gradient(farthest-side at 100% 50%, rgba(15, 26, 28, 0.16), rgba(15, 26, 28, 0)) 100% 0 / 14px 100% no-repeat;
+  background-attachment: local, local, scroll, scroll;
+}
+
+@media (max-width: 900px) {
+  /* a fita das abas também rola, e ali o esmaecimento resolve */
   .abas {
     mask-image: linear-gradient(to right, #000 88%, transparent 100%);
     -webkit-mask-image: linear-gradient(to right, #000 88%, transparent 100%);
   }
+
+  /* de qual conjunto é esta linha: a primeira coluna fica parada enquanto o
+     resto desliza, com o cabeçalho junto para o título não descolar do dado */
+  .rolagem .registro thead th:first-child,
+  .rolagem .registro tbody td:first-child {
+    position: sticky;
+    left: 0;
+    background: var(--papel);
+  }
 }
 
-/* Tabela larga rola, mas sem aviso ninguém descobre. O esmaecimento à direita
-   diz que tem mais coisa, do mesmo jeito que na fita das abas. */
-.rolagem, .decomposicao {
-  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent 100%);
+/* ============ foco de teclado ============ */
+
+/* no celular o anel nasce por dentro: overflow e máscara não têm o que cortar */
+@media (max-width: 900px) {
+  .abas button:focus-visible { outline-offset: -3px; }
 }
 
-/* quando cabe tudo, o esmaecimento some para não comer a última coluna */
-@media (min-width: 1100px) {
-  .rolagem, .decomposicao { mask-image: none; -webkit-mask-image: none; }
+/* foco no quadrinho é tinta, para não se confundir com o ouro de "escolhido" */
+.celula:focus-visible {
+  outline: 2px solid var(--tinta);
+  outline-offset: 1px;
+  z-index: 2;
 }
+
+.celula.escolhida:focus-visible {
+  outline-color: var(--tinta);
+  box-shadow: inset 0 0 0 2px var(--ouro);
+}
+
+/* a caixa rolável entra na ordem do foco sozinha; que seja na língua do painel */
+.ranking ol:focus-visible { outline: 2px solid var(--ouro); outline-offset: 3px; }

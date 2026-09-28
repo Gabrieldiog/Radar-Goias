@@ -59,10 +59,17 @@ export default function Mapa({ malha, valores, nomes, unidade, selecionado, aoSe
           <pattern id="hachura" width="7" height="7" patternUnits="userSpaceOnUse"
                    patternTransform="rotate(45)">
             <rect width="7" height="7" fill="#eef2f2" />
-            <line x1="0" y1="0" x2="0" y2="7" stroke="#d6dedf" strokeWidth="1.1" />
+            <line x1="0" y1="0" x2="0" y2="7" stroke="#608581" strokeWidth="1.4" />
           </pattern>
         </defs>
-        {malha.features.map((f) => {
+        {/* o escolhido é desenhado por último, senão o vizinho cobre o anel dele */}
+        {[...malha.features]
+          .sort(
+            (a, b) =>
+              (a.properties.codarea === selecionado ? 1 : 0) -
+              (b.properties.codarea === selecionado ? 1 : 0)
+          )
+          .map((f) => {
           const codigo = f.properties.codarea;
           const valor = valores[codigo];
           const preenchimento = cor(valor, maximo) ?? "url(#hachura)";
@@ -70,16 +77,15 @@ export default function Mapa({ malha, valores, nomes, unidade, selecionado, aoSe
           return (
             <path
               key={codigo}
+              className={escolhido ? "escolhido" : undefined}
               d={traco(f.geometry, box, largura, altura)}
               fill={preenchimento}
-              stroke={escolhido ? "#b3820f" : "#f2f5f5"}
-              strokeWidth={escolhido ? 2.4 : 0.6}
               onClick={() => aoSelecionar(codigo)}
             >
               <title>{`${nomes[codigo] ?? codigo}${valor == null ? ": sem dado" : `: ${numero(valor)}`}`}</title>
             </path>
           );
-        })}
+          })}
       </svg>
 
       <div className="legenda">

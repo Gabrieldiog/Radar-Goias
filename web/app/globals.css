@@ -904,7 +904,9 @@ p { max-width: 54ch; }
   tab-size: 2;
 }
 
-.codigo code { background: none; color: inherit; padding: 0; font-size: inherit; }
+/* code fora do bloco é um pedacinho no meio da frase e não pode quebrar; aqui
+   dentro é comando de duas linhas, e quebrar é justamente o ponto */
+.codigo code { background: none; color: inherit; padding: 0; font-size: inherit; white-space: pre; }
 
 code {
   font-family: var(--mono), ui-monospace, monospace;
@@ -949,7 +951,17 @@ code {
   color: var(--tinta-suave);
 }
 
-.passos h3 { margin: 2px 0 6px; font-size: 1rem; }
+/* h3 no resto do painel é rótulo de seção, em caixa alta. Aqui é o título do
+   passo, que a pessoa lê como frase. */
+.passos h3 {
+  margin: 2px 0 6px;
+  font-family: var(--fonte), sans-serif;
+  font-size: 1rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--tinta);
+  padding: 0;
+}
 .passos p { margin: 0; color: var(--tinta-suave); font-size: 0.93rem; max-width: 56ch; }
 
 .regras { margin: 0; max-width: 62ch; }

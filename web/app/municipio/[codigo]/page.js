@@ -36,7 +36,7 @@ export default function Municipio({ params }) {
   }, [codigo]);
 
   if (erro) return <main className="painel"><p className="erro">Não consegui carregar: {erro}</p></main>;
-  if (!ficha) return <main className="painel"><p className="aviso">Carregando a ficha.</p></main>;
+  if (!ficha) return <main className="painel"><p className="aviso carregando">Carregando a ficha.</p></main>;
 
   const comDado = Object.keys(INDICADORES).filter(
     (id) => INDICADORES[id].eixo !== "Atendimento ao cidadão"

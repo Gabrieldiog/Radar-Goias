@@ -187,7 +187,7 @@ export default function Painel() {
               </label>
             </div>
             {!serie ? (
-              <p className="aviso">Carregando a série.</p>
+              <p className="aviso carregando">Carregando a série.</p>
             ) : assunto === "dengue" ? (
               <Evolucao serie={serie} onde={ondeNome} />
             ) : (
@@ -225,7 +225,7 @@ export default function Painel() {
                 selecionado={selecionado}
               />
             ) : (
-              <p className="aviso">Cruzando os dois indicadores.</p>
+              <p className="aviso carregando">Cruzando os dois indicadores.</p>
             )}
           </section>
         )}
@@ -254,7 +254,7 @@ export default function Painel() {
             </nav>
 
             {!pronto ? (
-              <p className="aviso">Carregando o indicador.</p>
+              <p className="aviso carregando">Carregando o indicador.</p>
             ) : (
               <>
                 <p className="manchete">{meta.destaque(linhas, 246)}</p>
@@ -282,7 +282,7 @@ export default function Painel() {
                     />
 
                     {!malha ? (
-                      <p className="aviso">Carregando o mapa.</p>
+                      <p className="aviso carregando">Carregando o mapa.</p>
                     ) : (
                       <div className="quadro">
                         <Mapa

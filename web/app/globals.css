@@ -2,7 +2,6 @@
   --papel: #f2f5f5;
   --papel-alto: #ffffff;
   --fundo: #0e2a2e;
-  --fundo-claro: #17403f;
 
   --tinta: #0f1a1c;
   --tinta-suave: #55686c;
@@ -28,14 +27,24 @@
   --gutter: 28px;
 }
 
+/* o mapa media os mesmos 630px numa tela de 1440 e numa de 2560 */
+@media (min-width: 1600px) { :root { --largura: 1360px; } }
+@media (min-width: 2100px) { :root { --largura: 1560px; } }
+@media (min-width: 1600px) { .ranking ol { max-height: 780px; } }
+
 * { box-sizing: border-box; }
+
+/* rem valia 16px enquanto o corpo valia 15,5: todo valor em rem saía 3,2%
+   maior do que quem escreveu pediu. Em porcentagem, e não em px, para o leitor
+   que aumenta a fonte do navegador continuar sendo atendido. */
+html { font-size: 96.875%; }
 
 body {
   margin: 0;
   background: var(--papel);
   color: var(--tinta);
   font-family: var(--fonte), system-ui, sans-serif;
-  font-size: 15.5px;
+  font-size: 1rem;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -119,6 +128,9 @@ body {
 
 .faixa .tese strong { color: #e9f1f0; font-weight: 600; }
 
+/* padding e não margin: margin colapsa para fora da faixa e a folga some */
+.faixa .tese:last-child { padding-bottom: 26px; }
+
 /* ============ abas ============ */
 
 .abas {
@@ -180,13 +192,12 @@ h3 {
   padding: 0 0 12px;
 }
 
-p { max-width: 68ch; }
-.apoio { margin: 0; color: var(--tinta-suave); font-size: 0.93rem; max-width: 66ch; }
+p { max-width: 54ch; }
+.apoio { margin: 0; color: var(--tinta-suave); font-size: 0.93rem; max-width: 52ch; }
 
 /* a frase que cada visão calcula do próprio dado: é o que o painel achou, e
    por isso é a coisa maior da tela depois do título */
 .manchete,
-.destaque,
 .veredito {
   font-family: var(--display), var(--fonte), sans-serif;
   font-weight: 600;
@@ -197,6 +208,7 @@ p { max-width: 68ch; }
   margin: 26px 0 0;
   padding-left: 20px;
   border-left: 4px solid var(--ouro);
+  text-wrap: balance;
 }
 
 .veredito { max-width: 40ch; font-size: clamp(1.15rem, 2vw, 1.5rem); }
@@ -217,7 +229,7 @@ p { max-width: 68ch; }
 .grupo-nome {
   font-family: var(--mono), ui-monospace, monospace;
   font-size: 10.5px;
-  letter-spacing: 0.11em;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--tinta-suave);
 }
@@ -253,7 +265,6 @@ p { max-width: 68ch; }
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(30px, 1fr));
   gap: 3px;
-  align-items: stretch;
 }
 
 .celula {
@@ -309,7 +320,7 @@ p { max-width: 68ch; }
   margin: 12px 0 0;
   font-size: 0.85rem;
   color: var(--tinta-suave);
-  max-width: 72ch;
+  max-width: 56ch;
 }
 
 /* ============ mapa e ranking ============ */
@@ -343,7 +354,7 @@ p { max-width: 68ch; }
   vector-effect: non-scaling-stroke;
 }
 
-.legenda { margin-top: 20px; font-size: 0.83rem; color: var(--tinta-suave); }
+.legenda { margin-top: 20px; font-size: 0.84rem; color: var(--tinta-suave); }
 .escala { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .degraus { display: flex; }
 .degraus span { width: 38px; height: 13px; }
@@ -361,7 +372,6 @@ p { max-width: 68ch; }
   padding: 0;
   max-height: 560px;
   overflow-y: auto;
-  scroll-behavior: auto;
 }
 
 .ranking li {
@@ -423,7 +433,7 @@ p { max-width: 68ch; }
   margin-top: 34px;
   padding-top: 22px;
   border-top: 1px solid var(--linha-forte);
-  max-width: 68ch;
+  max-width: 54ch;
 }
 
 .ficha p { margin: 0 0 6px; }
@@ -459,7 +469,7 @@ p { max-width: 68ch; }
 
 /* ============ gráficos ============ */
 
-.grafico { width: 100%; height: auto; display: block; margin-top: 20px; }
+.grafico { width: 100%; max-width: 1150px; height: auto; display: block; margin-top: 20px; }
 .grafico .eixo { font-family: var(--mono), monospace; font-size: 11px; fill: var(--tinta-suave); }
 .grafico .eixo-nota { font-family: var(--mono), monospace; font-size: 9.5px; fill: var(--tinta-suave); }
 
@@ -493,7 +503,7 @@ p { max-width: 68ch; }
 .decomposicao { margin-top: 30px; overflow-x: auto; }
 .decomposicao .tabela th:first-child,
 .decomposicao .tabela td:first-child { padding-right: 22px; white-space: nowrap; }
-.decomposicao .tabela th.num, .decomposicao .tabela td.num { text-align: right; padding-left: 12px; }
+.decomposicao .tabela th.num, .decomposicao .tabela td.num { padding-left: 12px; }
 .decomposicao .tabela tbody td:first-child { color: var(--tinta-suave); }
 
 /* ============ tabelas ============ */
@@ -530,11 +540,15 @@ p { max-width: 68ch; }
   color: var(--tinta-suave);
   font-size: 0.86rem;
   text-align: left;
-  max-width: 70ch;
+  max-width: 55ch;
 }
 
 .registro td, .registro th { padding-right: 24px; white-space: nowrap; }
 .registro td:first-child { white-space: normal; }
+
+/* o conteúdo é nowrap, então a tabela sabe de que largura precisa: esticar até
+   o fim do painel abria 300px de buraco entre a fonte e o primeiro número */
+.registro { width: auto; }
 .registro .recusa { color: var(--alarme); font-weight: 600; }
 
 /* ============ comparador ============ */
@@ -543,7 +557,9 @@ p { max-width: 68ch; }
 
 .duelo thead th {
   text-align: left;
-  font-size: 0.95rem;
+  font-family: var(--display), var(--fonte), sans-serif;
+  font-size: 1.12rem;
+  letter-spacing: -0.015em;
   font-weight: 600;
   padding: 0 16px 10px 0;
   border-bottom: 2px solid var(--fundo);
@@ -570,7 +586,7 @@ p { max-width: 68ch; }
   vertical-align: top;
 }
 
-.duelo tbody th .rotulo { display: block; font-weight: 600; font-size: 0.93rem; }
+.duelo tbody th .rotulo { display: block; font-weight: 500; font-size: 0.93rem; }
 
 .duelo tbody th .unidade {
   display: block;
@@ -597,10 +613,13 @@ p { max-width: 68ch; }
   font-weight: 600;
   line-height: 1.05;
   letter-spacing: -0.02em;
+  /* sem isto o valor maior aparecia mais estreito que o menor, numa tela cujo
+     trabalho é pôr dois números lado a lado */
+  font-variant-numeric: tabular-nums;
 }
 
 .duelo .barra { display: block; height: 7px; background: var(--r0); margin: 10px 0 7px; }
-.duelo .barra i { display: block; height: 100%; background: var(--r2); }
+.duelo .barra i { display: block; height: 100%; background: var(--r3); }
 .duelo td.vence .barra i { background: var(--r4); }
 .duelo td.vence { box-shadow: inset 3px 0 0 var(--ouro); }
 .duelo thead th:not(:first-child) { padding-left: 13px; }
@@ -608,7 +627,7 @@ p { max-width: 68ch; }
 .duelo .lugar {
   display: block;
   font-family: var(--mono), monospace;
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   color: var(--tinta-suave);
 }
 
@@ -619,7 +638,7 @@ p { max-width: 68ch; }
 
 .fichas {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(163px, 1fr));
   gap: 26px 36px;
   margin: 0;
   padding: 22px 0 26px;
@@ -646,6 +665,7 @@ p { max-width: 68ch; }
   font-weight: 600;
   line-height: 0.98;
   letter-spacing: -0.028em;
+  font-variant-numeric: tabular-nums;
 }
 
 .cartao.vazio .numero {
@@ -654,7 +674,7 @@ p { max-width: 68ch; }
   font-weight: 400;
 }
 
-.cartao .unidade { font-size: 0.8rem; color: var(--tinta-suave); margin-top: 8px; }
+.cartao .unidade { font-size: 0.78rem; color: var(--tinta-suave); margin-top: 8px; }
 
 .cartao .lugar {
   font-family: var(--mono), monospace;
@@ -685,8 +705,27 @@ p { max-width: 68ch; }
 
 /* ============ avisos ============ */
 
-.aviso { color: var(--tinta-suave); font-size: 0.88rem; margin-top: 18px; max-width: 72ch; }
-.erro { color: var(--alarme); margin-top: 24px; }
+.aviso { color: var(--tinta-suave); font-size: 0.88rem; margin-top: 18px; max-width: 56ch; }
+/* estado passageiro tem voz própria, e reserva altura para a página não pular
+   de 830 para 2600 pixels quando o dado chega */
+.carregando {
+  min-height: 46vh;
+  margin-top: 38px;
+  font-family: var(--mono), monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* o pior momento do painel é o único sem nenhuma moldura */
+.erro {
+  color: var(--alarme);
+  margin-top: 38px;
+  padding: 16px 20px;
+  border-left: 4px solid var(--alarme);
+  background: var(--papel-alto);
+  max-width: 60ch;
+}
 
 .rodape {
   margin-top: 70px;
@@ -694,7 +733,7 @@ p { max-width: 68ch; }
   border-top: 1px solid var(--linha);
   color: var(--tinta-suave);
   font-size: 0.85rem;
-  max-width: 74ch;
+  max-width: 56ch;
 }
 
 /* ============ telas estreitas ============ */
@@ -703,17 +742,19 @@ p { max-width: 68ch; }
   :root { --gutter: 18px; }
   .grupo-botoes { flex-wrap: wrap; }
   .faixa { padding-top: 20px; }
+  .faixa .tese:last-child { padding-bottom: 20px; }
   .abas { overflow-x: auto; margin-top: 26px; }
   .abas button { white-space: nowrap; padding: 10px 12px 12px; }
   .quadro { grid-template-columns: 1fr; gap: 30px; }
   .ranking ol { max-height: 360px; }
-  .manchete, .destaque, .veredito { max-width: none; }
+  .manchete, .veredito { max-width: none; }
   .eixos { gap: 16px; width: 100%; }
   .eixos label { width: 100%; }
   .eixos select { max-width: none; width: 100%; }
   .fichas { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 22px 24px; }
   .cartao .numero { font-size: 1.6rem; }
   .duelo .valor { font-size: 1.15rem; }
+  .duelo thead th { font-size: 1rem; }
   .duelo tbody th { padding-right: 14px; }
   .celulas { grid-template-columns: repeat(auto-fill, minmax(28px, 1fr)); }
 }
@@ -727,7 +768,7 @@ p { max-width: 68ch; }
   align-items: baseline;
   justify-content: space-between;
   gap: 14px;
-  padding-bottom: 10px;
+  padding: 16px 0 10px;
 }
 
 .ranking-topo h3 { padding-bottom: 0; }
@@ -746,6 +787,12 @@ p { max-width: 68ch; }
 
 .ranking-topo input::placeholder { color: var(--tinta-suave); }
 
+@media (max-width: 1200px) {
+  .ranking-topo { flex-wrap: wrap; align-items: center; }
+  .ranking-topo h3 { white-space: nowrap; }
+  .ranking-topo input { flex: 1 1 11rem; max-width: 22rem; }
+}
+
 .ranking-conta {
   margin: 0 0 8px;
   font-family: var(--mono), monospace;
@@ -762,7 +809,7 @@ p { max-width: 68ch; }
   gap: 10px;
   margin: 16px 0 0;
   padding-left: 24px;
-  max-width: 70ch;
+  max-width: 58ch;
   font-size: 0.88rem;
   color: var(--tinta-suave);
 }
@@ -839,3 +886,28 @@ p { max-width: 68ch; }
 
 /* a caixa rolável entra na ordem do foco sozinha; que seja na língua do painel */
 .ranking ol:focus-visible { outline: 2px solid var(--ouro); outline-offset: 3px; }
+
+/* ============ telas de celular ============ */
+
+/* Abaixo de 520px a fita das abas não cabe e a terceira visão aparecia como
+   "Con". Ela quebra em linha, o que custa altura e paga com uma visão inteira
+   deixando de ficar escondida atrás de um gesto que nada anuncia. */
+@media (max-width: 520px) {
+  .abas {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+
+  .abas button { padding-inline: 0; margin-right: 20px; }
+}
+
+/* Alvo de dedo. O (hover: none) limita ao toque: no computador o sublinhado
+   de passagem dos atalhos descolaria do texto. */
+@media (max-width: 900px) and (hover: none) {
+  .atalhos a { padding-block: 12px; }
+  .celulas { grid-template-columns: repeat(auto-fill, minmax(32px, 1fr)); gap: 4px; }
+  .celula { height: 32px; }
+  .ranking-topo input { padding: 12px 10px; }
+}

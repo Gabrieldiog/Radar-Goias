@@ -5,7 +5,6 @@
 // mexeu, e é justamente aí que está a leitura que ninguém publica.
 const TEAL = "#3f8489";
 const OURO = "#a9760a";
-const VINHO = "#8c2f18";
 
 const n1 = (v) => (v == null ? "" : v.toFixed(1).replace(".", ","));
 const pct = (v) => (v == null ? "" : `${Math.round(v * 100)}%`);

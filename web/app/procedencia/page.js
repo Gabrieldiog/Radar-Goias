@@ -44,7 +44,7 @@ export default function Procedencia() {
   }, []);
 
   if (erro) return <main className="painel"><p className="erro">Não consegui carregar: {erro}</p></main>;
-  if (!dados) return <main className="painel"><p className="aviso">Carregando o registro.</p></main>;
+  if (!dados) return <main className="painel"><p className="aviso carregando">Carregando o registro.</p></main>;
 
   const linhas = dados.conjuntos.reduce((s, c) => s + c.linhas, 0);
   const recusadas = dados.fontes.reduce((s, f) => s + f.recusadas, 0);

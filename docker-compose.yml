@@ -1,4 +1,7 @@
 # Sobe o Radar inteiro: banco, carga dos dados, API e painel. Um comando só.
+# O banco publica preso em 127.0.0.1 de proposito. O Docker escreve as proprias
+# regras de iptables e passa por cima de firewall, entao esta linha e o unico
+# lugar que decide se ele fica exposto.
 #   docker compose up -d
 # O painel abre em http://localhost:3000 e a API responde em http://localhost:8000.
 # A chave de acesso é a de RADAR_CHAVES, e ela nunca chega ao navegador.
@@ -9,7 +12,7 @@ services:
       POSTGRES_DB: radar_goias
       POSTGRES_HOST_AUTH_METHOD: trust
     ports:
-      - "${RADAR_PORTA:-5433}:5432"
+      - "127.0.0.1:${RADAR_PORTA:-5433}:5432"
     volumes:
       - dados:/var/lib/postgresql/data
     healthcheck:

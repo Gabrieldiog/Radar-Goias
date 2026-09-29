@@ -126,6 +126,12 @@ export default function Painel() {
     : comPosicao;
   const posicao = linhas.findIndex((l) => l.codigo_ibge === selecionado);
   const detalhe = posicao >= 0 ? linhas[posicao] : null;
+  // empate é empate, igual à API: contar pelo lugar na lista dava 91 posições
+  // diferentes aos 91 municípios que ficam a 0 km da porta noturna
+  const lugar =
+    detalhe && detalhe[meta.campo] != null
+      ? linhas.findIndex((l) => l[meta.campo] === detalhe[meta.campo]) + 1
+      : posicao + 1;
 
   return (
     <>
@@ -358,7 +364,7 @@ export default function Painel() {
                       <>
                         <p>
                           <strong>{detalhe.nome}</strong> aparece em{" "}
-                          <strong>{posicao + 1}º de {linhas.length}</strong>, com{" "}
+                          <strong>{lugar}º de {linhas.length}</strong>, com{" "}
                           {fmt(detalhe[meta.campo])} {meta.unidade}
                           {detalhe.habitantes
                             ? `, entre ${detalhe.habitantes.toLocaleString("pt-BR")} moradores.`

@@ -210,12 +210,15 @@ def _do_municipio(linhas, codigo_ibge, campo):
 # as consultas de indicador já voltam ordenadas do maior para o menor, então a
 # posição é o índice; município sem valor fica de fora da contagem, senão a
 # ausência de dado viraria último lugar
+# empate é empate: 91 municípios ficam a 0 km da porta noturna, e contar a
+# posição pelo lugar na lista dava 91 posições diferentes para o mesmo número
 def _ranking(linhas, codigo_ibge, campo):
     com_valor = [l for l in linhas if l.get(campo) is not None]
-    for posicao, l in enumerate(com_valor, 1):
-        if l["codigo_ibge"] == codigo_ibge:
-            return {"posicao": posicao, "de": len(com_valor)}
-    return None
+    meu = next((l for l in com_valor if l["codigo_ibge"] == codigo_ibge), None)
+    if meu is None:
+        return None
+    primeiro = next(i for i, l in enumerate(com_valor, 1) if l[campo] == meu[campo])
+    return {"posicao": primeiro, "de": len(com_valor)}
 
 
 def _cabecalho(conn, codigo_ibge: str) -> dict:

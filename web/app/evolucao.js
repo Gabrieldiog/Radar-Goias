@@ -2,9 +2,11 @@
 
 // Barra com o número escrito em cima. Numa linha, o leitor tem que medir a
 // altura contra o eixo para saber quanto foi; aqui ele lê.
-const TEAL = "#3f8489";
+import { RAMPA } from "./rampa";
+
+const TEAL = RAMPA[4];
 const OURO = "#a9760a";
-const CLARO = "#a9c4c4";
+const CLARO = RAMPA[2];
 
 export default function Evolucao({ serie, onde }) {
   if (!serie.length) return <p className="aviso">Não há caso registrado em {onde}.</p>;

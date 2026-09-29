@@ -8,6 +8,7 @@ import Evolucao from "./evolucao";
 import Cruzamento from "./cruzamento";
 import Aprendizagem from "./aprendizagem";
 import Cobertura from "./cobertura";
+import Resumo from "./resumo";
 import { EIXOS, INDICADORES, fmt } from "./indicadores";
 
 const MAPEAVEIS = Object.entries(INDICADORES).filter(([, v]) => v.eixo !== "Atendimento ao cidadão");
@@ -273,6 +274,13 @@ export default function Painel() {
                   </div>
                 ) : (
                   <>
+                    <Resumo
+                      linhas={linhas}
+                      municipios={municipios}
+                      campo={meta.campo}
+                      unidade={meta.unidade}
+                    />
+
                     <Cobertura
                       linhas={linhas}
                       municipios={municipios}
@@ -377,7 +385,7 @@ export default function Painel() {
                       </p>
                     ) : (
                       <p className="apoio">
-                        Clique num município, no quadrinho, no mapa ou na lista, para ver a posição
+                        Clique num município, na faixa, no mapa ou na lista, para ver a posição
                         dele.
                       </p>
                     )}

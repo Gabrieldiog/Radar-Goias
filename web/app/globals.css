@@ -17,11 +17,19 @@
   --borda-controle: #75878a;
   --alarme: #8c2f18;
 
-  --r0: #e4e9e7;
-  --r1: #b9cfcb;
-  --r2: #7fafaa;
-  --r3: #3f8489;
-  --r4: #14555f;
+  /* A rampa do Cerrado na virada da seca para a água: areia, capim seco, olho
+     de mato, verde fechado. Termina no verde da marca, então o mapa pertence à
+     página em vez de flutuar nela. Os mesmos cinco valores estão em rampa.js. */
+  --r0: #f1e6cb;
+  --r1: #ddc179;
+  --r2: #a8ad6a;
+  --r3: #5d8a68;
+  --r4: #1f5a4f;
+
+  --carta: #ffffff;
+  --carta-borda: #e3e9e9;
+  --sombra-baixa: 0 1px 2px rgba(11, 36, 41, 0.05), 0 6px 18px -10px rgba(11, 36, 41, 0.18);
+  --curva: cubic-bezier(0.2, 0.8, 0.2, 1);
 
   --largura: 1140px;
   --gutter: 28px;
@@ -181,13 +189,12 @@ h2 {
   text-wrap: balance;
 }
 
+/* Era mono em caixa alta com entreletra aberta. Repetido em toda seção, isso
+   vira moldura de gerador de site: o olho lê "rótulo" antes de ler a palavra. */
 h3 {
-  font-size: 0.8rem;
+  font-size: 0.95rem;
   font-weight: 600;
-  font-family: var(--mono), ui-monospace, monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--tinta-suave);
+  color: var(--tinta);
   margin: 0;
   padding: 0 0 12px;
 }
@@ -204,10 +211,16 @@ p { max-width: 54ch; }
   font-size: clamp(1.4rem, 2.7vw, 2rem);
   line-height: 1.2;
   letter-spacing: -0.02em;
-  max-width: 24ch;
+  max-width: 32ch;
   margin: 26px 0 0;
-  padding-left: 20px;
-  border-left: 4px solid var(--ouro);
+  padding: 24px 30px 26px 26px;
+  background: var(--carta);
+  border: 1px solid var(--carta-borda);
+  border-left: 5px solid var(--ouro);
+  /* quina viva do lado da régua e quina macia do lado oposto: o cartão aponta
+     para a barra em vez de ser um retângulo qualquer */
+  border-radius: 2px 12px 12px 2px;
+  box-shadow: var(--sombra-baixa);
   text-wrap: balance;
 }
 
@@ -226,13 +239,7 @@ p { max-width: 54ch; }
 }
 .grupo { display: flex; flex-direction: column; gap: 8px; }
 
-.grupo-nome {
-  font-family: var(--mono), ui-monospace, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--tinta-suave);
-}
+.grupo-nome { font-size: 0.78rem; font-weight: 500; color: var(--tinta-suave); }
 
 .grupo-botoes { display: flex; gap: 6px; flex-wrap: nowrap; }
 
@@ -242,85 +249,162 @@ p { max-width: 54ch; }
   padding: 7px 14px;
   border: 1px solid var(--borda-controle);
   border-radius: 100px;
-  background: var(--papel-alto);
+  background: var(--carta);
   color: var(--tinta-suave);
   cursor: pointer;
-  transition: border-color 0.12s ease, color 0.12s ease;
+  transition: border-color 0.14s var(--curva), color 0.14s var(--curva),
+    transform 0.14s var(--curva), box-shadow 0.14s var(--curva);
 }
 
-.seletor button:hover { border-color: var(--tinta-suave); color: var(--tinta); }
+.seletor button:hover {
+  border-color: var(--tinta-suave);
+  color: var(--tinta);
+  transform: translateY(-1px);
+  box-shadow: var(--sombra-baixa);
+}
 
 .seletor button[aria-pressed="true"] {
   background: var(--fundo);
   border-color: var(--fundo);
   color: #fff;
   font-weight: 500;
+  box-shadow: var(--sombra-baixa);
 }
 
 /* ============ faixa dos 246 ============ */
 
-.cobertura { margin-top: 30px; }
+/* ============ a faixa dos 246 ============ */
 
-.celulas {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(30px, 1fr));
-  gap: 3px;
-}
+/* Eram quadradinhos de 24px com três letras do nome dentro. Três letras não
+   separam Goiânia de Goianira, e naquele corpo nenhuma delas se lia: sobrava
+   uma grade verde sem informação. Agora cada município é uma torre, e a altura
+   diz o valor sem precisar ser lida. */
+.faixa-246 { margin: 30px 0 0; }
 
-.celula {
-  height: 24px;
-  border: 0;
-  padding: 0;
-  border-radius: 1px;
-  cursor: pointer;
-  font-family: var(--mono), monospace;
-  font-size: 8.5px;
-  letter-spacing: 0.04em;
-  line-height: 1;
+.faixa-246 figcaption {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  transition: transform 0.1s ease;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  font-size: 0.85rem;
+  color: var(--tinta-suave);
+  margin-bottom: 9px;
 }
 
-/* as iniciais são pista, não identificador: ficam um grau abaixo da cor, que é
-   quem carrega o valor, mas acima do mínimo legível */
-.celula.n0, .celula.n1, .celula.n2 { color: rgba(15, 26, 28, 0.8); }
-.celula.n3, .celula.n4 { color: #fff; }
-
-.celula:hover { transform: scale(1.12); z-index: 1; }
-.celula.escolhida { outline: 2px solid var(--ouro); outline-offset: 1px; z-index: 1; }
-
-.oculto {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-/* Mesma hachura do mapa, e o traço passou de #d6dedf para #608581 porque o
-   anterior dava 1,03:1 contra o degrau mais claro: "sem dado" e "valor baixo"
-   eram a mesma mancha. O quadrinho continua clicável, porque clicar nele é o
-   único jeito de ver a frase que diz que sem dado é diferente de zero. */
-.celula.sem {
+.faixa-246 figcaption strong {
+  font-weight: 500;
   color: var(--tinta);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.torres {
+  display: flex;
+  align-items: flex-end;
+  height: 118px;
+  border-bottom: 2px solid var(--fundo);
+}
+
+/* Os dois blocos crescem na proporção de quantos municípios têm, então o
+   pedaço sem altura mede exatamente o tamanho do buraco. */
+/* altura explícita, senão a porcentagem de cada torre não tem contra o que
+   medir e todas elas nascem com zero */
+.torres .bloco { display: flex; align-items: flex-end; gap: 1px; min-width: 0; height: 100%; }
+
+.torres .bloco.ausente { border-left: 2px solid var(--linha-forte); padding-left: 5px; }
+
+.torres-eixo {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 7px;
+  font-size: 0.78rem;
+  color: var(--tinta-suave);
+}
+
+.torre {
+  flex: 1 1 0;
+  min-width: 2px;
+  border-radius: 1.5px 1.5px 0 0;
+  cursor: pointer;
+  transform-origin: 50% 100%;
+  transition: transform 0.12s var(--curva), filter 0.12s var(--curva);
+}
+
+/* alargar em vez de acender: numa torre de 3px, mudar a cor some, mudar a
+   largura aparece */
+.torre:hover { transform: scaleX(2.6); filter: brightness(0.9); }
+
+/* Sem dado não é zero. Fica a marca hachurada na base, com a mesma trama do
+   mapa, para as duas telas dizerem a mesma coisa do mesmo jeito. */
+.torre.vazia {
+  height: 6px;
   background: repeating-linear-gradient(
     45deg,
     #eef2f2,
-    #eef2f2 5.2px,
-    #608581 5.2px,
-    #608581 6px
+    #eef2f2 3.2px,
+    #7d9497 3.2px,
+    #7d9497 4.4px
   );
 }
 
-.cobertura-nota {
+/* contorno, e não cor: a cor da torre é o valor dela e não pode ser roubada
+   para dizer "esta é a escolhida" */
+.torre.escolhida {
+  outline: 2px solid var(--ouro);
+  outline-offset: 0;
+  transform: scaleX(2.6);
+}
+
+.faixa-nota {
   margin: 12px 0 0;
   font-size: 0.85rem;
   color: var(--tinta-suave);
-  max-width: 56ch;
+  max-width: 62ch;
+}
+
+/* ============ os quatro números do indicador ============ */
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 24px;
+}
+
+/* régua no topo em vez de sombra por baixo: quatro cartões iguais boiando são
+   a moldura de painel que todo gerador entrega */
+.tile {
+  background: var(--carta);
+  border: 1px solid var(--carta-borda);
+  border-top: 3px solid var(--fundo);
+  border-radius: 0 0 9px 9px;
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.tile.calma { border-top-color: var(--linha-forte); }
+
+.tile-rotulo { font-size: 0.78rem; color: var(--tinta-suave); }
+
+.tile-valor {
+  font-family: var(--display), var(--fonte), sans-serif;
+  font-size: 1.62rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.tile-apoio { font-size: 0.8rem; color: var(--tinta-suave); }
+
+.tiles-unidade {
+  grid-column: 1 / -1;
+  margin: 0;
+  max-width: none;
+  font-size: 0.8rem;
+  color: var(--tinta-suave);
 }
 
 /* ============ mapa e ranking ============ */
@@ -328,9 +412,36 @@ p { max-width: 54ch; }
 .quadro {
   display: grid;
   grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
-  gap: 44px;
+  gap: 22px;
   align-items: start;
-  margin-top: 34px;
+  margin-top: 30px;
+}
+
+/* Os dois viviam soltos no papel, separados só por espaço. Como cartão, cada
+   um vira uma coisa com borda, e o olho para de tratar o mapa e a lista como
+   um bloco só. */
+.quadro > div:first-child,
+.quadro > .ranking {
+  background: var(--carta);
+  border: 1px solid var(--carta-borda);
+  border-radius: 12px;
+  box-shadow: var(--sombra-baixa);
+  padding: 20px 22px 18px;
+}
+
+/* A lista rola, e a linha cortada na borda do cartão parecia defeito. O véu
+   diz "tem mais embaixo" sem precisar de uma frase para isso. */
+.ranking { position: relative; }
+
+.ranking::after {
+  content: "";
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  bottom: 18px;
+  height: 46px;
+  pointer-events: none;
+  background: linear-gradient(to top, var(--carta), rgba(255, 255, 255, 0));
 }
 
 .mapa { width: 100%; height: auto; display: block; }
@@ -362,7 +473,7 @@ p { max-width: 54ch; }
 .legenda .sem { display: flex; align-items: flex-start; gap: 9px; margin-top: 12px; max-width: 54ch; }
 .legenda .sem svg { flex: none; margin-top: 3px; }
 
-.ranking { border-top: 2px solid var(--fundo); }
+.ranking { border-top: 0; }
 /* position aqui é o que faz offsetTop do item contar a partir da caixa, e não
    do corpo da página: sem isso a rolagem até o município clicado erra o alvo */
 .ranking ol {
@@ -430,10 +541,13 @@ p { max-width: 54ch; }
 /* ============ ficha do selecionado ============ */
 
 .ficha {
-  margin-top: 34px;
-  padding-top: 22px;
-  border-top: 1px solid var(--linha-forte);
-  max-width: 54ch;
+  margin-top: 30px;
+  padding: 20px 26px 22px;
+  background: var(--carta);
+  border: 1px solid var(--carta-borda);
+  border-radius: 12px;
+  box-shadow: var(--sombra-baixa);
+  max-width: 64ch;
 }
 
 .ficha p { margin: 0 0 6px; }
@@ -756,7 +870,6 @@ p { max-width: 54ch; }
   .duelo .valor { font-size: 1.15rem; }
   .duelo thead th { font-size: 1rem; }
   .duelo tbody th { padding-right: 14px; }
-  .celulas { grid-template-columns: repeat(auto-fill, minmax(28px, 1fr)); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -872,17 +985,6 @@ p { max-width: 54ch; }
   .abas button:focus-visible { outline-offset: -3px; }
 }
 
-/* foco no quadrinho é tinta, para não se confundir com o ouro de "escolhido" */
-.celula:focus-visible {
-  outline: 2px solid var(--tinta);
-  outline-offset: 1px;
-  z-index: 2;
-}
-
-.celula.escolhida:focus-visible {
-  outline-color: var(--tinta);
-  box-shadow: inset 0 0 0 2px var(--ouro);
-}
 
 /* a caixa rolável entra na ordem do foco sozinha; que seja na língua do painel */
 .ranking ol:focus-visible { outline: 2px solid var(--ouro); outline-offset: 3px; }
@@ -978,6 +1080,48 @@ code {
   min-width: 22ch;
 }
 
+
+/* ============ movimento ============ */
+
+/* Um momento só, na chegada: o achado sobe, os quatro números entram atrás
+   dele e as torres crescem da base. Depois disso a página fica parada, e o que
+   se move é resposta a um gesto de quem está lendo. O bloco de
+   prefers-reduced-motion mais acima desliga tudo isto de uma vez.
+
+   O preenchimento é backwards, e não both: com both a animação continuaria
+   mandando no transform depois de acabar, e a torre não conseguiria alargar
+   quando o mouse passasse por cima dela. */
+@keyframes sobe {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes cresce {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+.manchete { animation: sobe 0.5s var(--curva) backwards; }
+
+.tile {
+  animation: sobe 0.45s var(--curva) backwards;
+  animation-delay: calc(var(--i) * 65ms);
+}
+
+/* 2,4ms por torre: as 246 varrem a faixa em menos de 0,6s, que é rápido o
+   bastante para ser um gesto e lento o bastante para se ver a forma */
+.torre {
+  animation: cresce 0.5s var(--curva) backwards;
+  animation-delay: calc(var(--i) * 2.4ms);
+}
+
+.quadro > div:first-child,
+.quadro > .ranking {
+  animation: sobe 0.5s var(--curva) 0.12s backwards;
+}
+
+.ficha { animation: sobe 0.4s var(--curva) backwards; }
+
 /* ============ telas de celular ============ */
 
 /* Abaixo de 520px a fita das abas não cabe e a terceira visão aparecia como
@@ -993,6 +1137,10 @@ code {
 
   .abas button { padding-inline: 0; margin-right: 20px; }
   .codigo { padding: 12px 13px; font-size: 0.76rem; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .torres { height: 86px; }
+  .faixa-246 figcaption { flex-direction: column; gap: 2px; }
+  .faixa-246 figcaption strong { text-align: left; }
   .passos > li { padding-left: 32px; }
 }
 
@@ -1000,7 +1148,5 @@ code {
    de passagem dos atalhos descolaria do texto. */
 @media (max-width: 900px) and (hover: none) {
   .atalhos a { padding-block: 12px; }
-  .celulas { grid-template-columns: repeat(auto-fill, minmax(32px, 1fr)); gap: 4px; }
-  .celula { height: 32px; }
   .ranking-topo input { padding: 12px 10px; }
 }

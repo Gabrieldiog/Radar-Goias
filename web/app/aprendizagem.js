@@ -3,7 +3,9 @@
 // O IDEB é o produto de duas coisas que a fonte publica separadas: quanto se
 // aprova e quanto se aprende. Mostrar só a nota final esconde qual das duas
 // mexeu, e é justamente aí que está a leitura que ninguém publica.
-const TEAL = "#3f8489";
+import { RAMPA } from "./rampa";
+
+const TEAL = RAMPA[4];
 const OURO = "#a9760a";
 
 const n1 = (v) => (v == null ? "" : v.toFixed(1).replace(".", ","));

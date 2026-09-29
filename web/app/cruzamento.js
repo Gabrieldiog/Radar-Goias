@@ -5,8 +5,8 @@
 // mostra quanto o grupo tem do outro indicador. Se as barras sobem, uma coisa
 // acompanha a outra.
 
-// mesma direção da rampa do mapa, sem o tom mais claro, que some no fundo
-const RAMPA = ["#cbdedb", "#9fc4c0", "#6fa8a6", "#3f8489", "#14555f"];
+// a mesma rampa do mapa e da faixa: cinco grupos, cinco degraus
+import { RAMPA } from "./rampa";
 const GRUPOS = 5;
 
 // centavos e décimos em número de quatro dígitos só atrapalham a leitura

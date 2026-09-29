@@ -2,7 +2,7 @@
 
 // Desenha os 246 municípios em SVG a partir do contorno do IBGE, sem biblioteca
 // de mapa. Para um estado só, uma projeção linear simples já sai correta.
-const RAMPA = ["#d5e2de", "#b9cfcb", "#7fafaa", "#3f8489", "#14555f"];
+import { RAMPA, cor } from "./rampa";
 
 function aneis(geometria) {
   return geometria.type === "Polygon" ? geometria.coordinates : geometria.coordinates.flat();
@@ -29,14 +29,6 @@ function traco(geometria, box, largura, altura) {
   return aneis(geometria)
     .map((a) => "M" + a.map(([x, y]) => `${px(x).toFixed(1)},${py(y).toFixed(1)}`).join("L") + "Z")
     .join(" ");
-}
-
-// a raiz quadrada abre a parte de baixo da escala: sem ela, um município muito
-// acima da média achata todos os outros numa cor só
-function cor(valor, maximo) {
-  if (valor == null) return null;
-  const posicao = Math.sqrt(valor / maximo);
-  return RAMPA[Math.min(RAMPA.length - 1, Math.floor(posicao * RAMPA.length))];
 }
 
 function numero(v) {

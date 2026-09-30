@@ -3,7 +3,7 @@
 import os
 import re
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 from psycopg.rows import dict_row
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -11,7 +11,9 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 
-from radar import banco, indicadores, malha
+from pydantic import BaseModel, Field
+
+from radar import banco, chaves as registro, indicadores, malha
 
 CATALOGO = {
     "incidencia-dengue": {
@@ -148,16 +150,38 @@ def chaves() -> set[str]:
     return {c.strip() for c in os.environ.get("RADAR_CHAVES", "").split(",") if c.strip()}
 
 
+def _apresentada(request: Request) -> str | None:
+    return request.headers.get("x-api-key") or request.query_params.get("chave")
+
+
 def exige_chave(request: Request) -> str:
-    chave = request.headers.get("x-api-key") or request.query_params.get("chave")
-    if not chave or chave not in chaves():
-        raise HTTPException(401, "chave ausente ou inválida; use o cabeçalho x-api-key ou ?chave=")
-    return chave
+    chave = _apresentada(request)
+    if not chave:
+        raise HTTPException(401, "chave ausente; use o cabeçalho x-api-key ou ?chave=")
+    # o ambiente primeiro, que é a do painel e não custa consulta; só quem não
+    # está lá desce até a tabela, onde a conferência também conta o uso
+    if chave in chaves():
+        return chave
+    with banco.conecta() as conn:
+        if registro.confere(conn, chave):
+            return chave
+    raise HTTPException(401, "chave inválida")
+
+
+# 32 caracteres hexadecimais: o formato que emite() produz
+FORMATO_DE_CHAVE = re.compile(r"[0-9a-f]{32}")
 
 
 def balde(request: Request) -> str:
-    chave = request.headers.get("x-api-key") or request.query_params.get("chave")
-    return f"chave:{chave}" if chave in chaves() else f"ip:{get_remote_address(request)}"
+    chave = _apresentada(request)
+    if chave and (chave in chaves() or FORMATO_DE_CHAVE.fullmatch(chave)):
+        return f"chave:{chave}"
+    return f"ip:{get_remote_address(request)}"
+
+
+class PedidoDeChave(BaseModel):
+    nome: str = Field(min_length=1, max_length=registro.LIMITE_NOME)
+    motivo: str = Field(default="", max_length=registro.LIMITE_MOTIVO)
 
 
 # o campo que carrega o valor muda de indicador para indicador
@@ -346,6 +370,42 @@ def cria_app(limite: str = "60/minute") -> FastAPI:
     @app.get("/saude")
     def saude(request: Request):
         return {"ok": True}
+
+    # Pedir chave não pode exigir chave, senão ninguém consegue a primeira. O
+    # limite por hora é por IP, porque aqui não há chave para contar, e sem ele
+    # a tabela vira depósito de linha.
+    @app.post("/v1/chaves", status_code=201)
+    @limiter.limit("5/hour")
+    def pede_chave(request: Request, response: Response, pedido: PedidoDeChave):
+        with banco.conecta() as conn:
+            try:
+                nova = registro.emite(conn, pedido.nome, pedido.motivo)
+            except ValueError as erro:
+                raise HTTPException(400, str(erro)) from erro
+        return {
+            "chave": nova.chave,
+            "nome": nova.nome,
+            "motivo": nova.motivo,
+            "limite": "60 requisições por minuto, contadas só para esta chave",
+        }
+
+    # Deixa quem tem a chave conferir que ela vale e ver o próprio uso. A chave
+    # não volta no corpo: esta resposta atravessa o proxy do painel e acabaria
+    # gravada em log de servidor.
+    @app.get("/v1/chaves/minha")
+    def minha_chave(request: Request, chave: str = Depends(exige_chave)):
+        with banco.conecta() as conn:
+            linha = registro.busca(conn, chave)
+        if linha is None:
+            return {"nome": "chave do ambiente", "motivo": "", "chamadas": None, "do_ambiente": True}
+        return {
+            "nome": linha["nome"],
+            "motivo": linha["motivo"],
+            "criada_em": linha["criada_em"],
+            "ultimo_uso": linha["ultimo_uso"],
+            "chamadas": linha["chamadas"],
+            "do_ambiente": False,
+        }
 
     @app.get("/v1/municipios")
     def lista_municipios(request: Request, chave: str = Depends(exige_chave)):

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Faixa from "../faixa";
+import Console from "../console";
 
 // o endereço entra na imagem no momento do build, porque o painel e a API
 // respondem em portas diferentes e o navegador precisa do endereço de fora
@@ -36,14 +37,24 @@ export default function UsarApi() {
         </p>
 
         <section className="vista bloco-eixo">
-          <h2>Em três passos</h2>
+          <h2>Pegue sua chave e experimente</h2>
+          <p className="apoio">
+            Sem cadastro, sem espera e sem custo. A chave sai na hora e o teste ao lado chama a
+            API de verdade, com a chave que você acabou de receber.
+          </p>
+          <Console endereco={API} />
+        </section>
+
+        <section className="vista bloco-eixo">
+          <h2>Em três passos, no seu código</h2>
 
           <ol className="passos">
             <li>
-              <h3>Peça uma chave</h3>
+              <h3>Pegue a chave no formulário acima</h3>
               <p>
-                Ela é um texto que identifica quem está chamando. Sem chave a resposta é 401, e
-                com chave inválida também.
+                São 32 caracteres que identificam quem está chamando. O limite de requisições é
+                contado por chave, então a sua não divide balde com ninguém. Sem chave a resposta
+                é 401, e com chave inválida também.
               </p>
             </li>
             <li>

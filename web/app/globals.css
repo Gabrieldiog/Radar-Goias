@@ -1164,6 +1164,132 @@ code {
 
 .ficha { animation: sobe 0.4s var(--curva) backwards; }
 
+
+/* ============ pedido de chave e console de teste ============ */
+
+.console { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.console .cartela { margin-top: 0; }
+.console h3 { padding-bottom: 4px; }
+.console form { display: flex; flex-direction: column; gap: 12px; margin: 16px 0 0; }
+
+.console label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 0.82rem;
+  color: var(--tinta-suave);
+}
+
+.console input,
+.console select {
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--tinta);
+  background: var(--papel);
+  padding: 9px 11px;
+  border: 1px solid var(--borda-controle);
+  border-radius: 6px;
+}
+
+.console input::placeholder { color: var(--tinta-clara); }
+
+/* o botão que faz a coisa acontecer é o único cheio da página */
+.console button.principal {
+  align-self: flex-start;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #fff;
+  background: var(--fundo);
+  border: 1px solid var(--fundo);
+  border-radius: 100px;
+  padding: 9px 20px;
+  cursor: pointer;
+  transition: transform 0.14s var(--curva), box-shadow 0.14s var(--curva);
+}
+
+.console button.principal:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--sombra-baixa);
+}
+
+.console button.principal:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* A chave recém-emitida é o que a pessoa veio buscar: fundo de ouro claro,
+   para ela achar de novo depois de rolar a página. */
+.chave-emitida {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: #fbf3df;
+  border: 1px solid #e6d5a8;
+  border-radius: 8px;
+}
+
+.rotulo-chave { display: block; font-size: 0.78rem; color: var(--tinta-suave); margin-bottom: 6px; }
+
+.chave-emitida code {
+  background: none;
+  padding: 0;
+  font-size: 0.86rem;
+  word-break: break-all;
+  white-space: normal;
+  color: var(--tinta);
+}
+
+.chave-emitida button {
+  font: inherit;
+  font-size: 0.78rem;
+  margin-left: 8px;
+  padding: 3px 10px;
+  border: 1px solid var(--borda-controle);
+  border-radius: 100px;
+  background: var(--carta);
+  color: var(--tinta-suave);
+  cursor: pointer;
+}
+
+.chave-emitida .apoio { margin-top: 8px; font-size: 0.82rem; }
+
+.equivalente { margin-top: 16px; font-size: 0.82rem; }
+
+.saida { margin-top: 14px; }
+
+.placar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 8px;
+  font-size: 0.82rem;
+  color: var(--tinta-suave);
+  font-family: var(--mono), monospace;
+}
+
+.selo-ok, .selo-ruim {
+  font-weight: 500;
+  color: #fff;
+  padding: 2px 9px;
+  border-radius: 100px;
+}
+
+.selo-ok { background: var(--r4); }
+.selo-ruim { background: var(--alarme); }
+
+.erro-inline {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  background: #fbeeea;
+  border-left: 3px solid var(--alarme);
+  color: var(--alarme);
+  font-size: 0.86rem;
+  border-radius: 0 6px 6px 0;
+}
+
+.console .codigo { max-height: 340px; overflow: auto; }
+
+@media (max-width: 900px) {
+  .console { grid-template-columns: 1fr; }
+}
+
 /* ============ telas de celular ============ */
 
 /* Abaixo de 520px a fita das abas não cabe e a terceira visão aparecia como

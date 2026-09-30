@@ -138,3 +138,12 @@ create table if not exists foco_queimada (
 
 create index if not exists foco_queimada_quando on foco_queimada (detectado_em);
 create index if not exists foco_queimada_municipio on foco_queimada (codigo_ibge, detectado_em);
+
+create table if not exists chave_api (
+    chave      text primary key,
+    nome       text not null,
+    motivo     text not null default '',
+    criada_em  timestamptz not null default now(),
+    ultimo_uso timestamptz,
+    chamadas   integer not null default 0
+);

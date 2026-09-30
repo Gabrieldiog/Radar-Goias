@@ -1,6 +1,7 @@
 """API REST do Radar. Chave por requisição e limite por chave, não por IP."""
 
 import os
+import re
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -221,7 +222,20 @@ def _ranking(linhas, codigo_ibge, campo):
     return {"posicao": primeiro, "de": len(com_valor)}
 
 
+# [0-9] e não \d: o \d do Python casa numeral de qualquer alfabeto, e "52"
+# seguido de algarismos árabes orientais passaria por código de Goiás
+CODIGO_DE_GOIAS = re.compile(r"52[0-9]{5}")
+
+
+def codigo_valido(codigo) -> bool:
+    return isinstance(codigo, str) and CODIGO_DE_GOIAS.fullmatch(codigo) is not None
+
+
 def _cabecalho(conn, codigo_ibge: str) -> dict:
+    # conferir o formato antes de consultar: um byte nulo no caminho chegava ao
+    # Postgres, que recusa NUL em texto, e a rota respondia 500 em vez de 404
+    if not codigo_valido(codigo_ibge):
+        raise HTTPException(404, "município desconhecido")
     with conn.cursor(row_factory=dict_row) as cur:
         linha = cur.execute(
             "select m.codigo_ibge, m.nome, p.habitantes, p.ano as ano_populacao"

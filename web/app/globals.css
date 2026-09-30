@@ -1165,6 +1165,47 @@ code {
 .ficha { animation: sobe 0.4s var(--curva) backwards; }
 
 
+
+
+/* a barra mora atrás do número, encostada na base da linha */
+.registro td.com-peso { position: relative; }
+
+.peso {
+  position: absolute;
+  left: 0;
+  right: 24px;
+  bottom: 4px;
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    var(--r3) 0,
+    var(--r3) var(--fracao),
+    var(--linha) var(--fracao),
+    var(--linha) 100%
+  );
+}
+
+/* ============ cartão que explica a aba ============ */
+
+/* As duas abas abriam com título, parágrafo e dois seletores soltos no papel.
+   Como cartão, a explicação e os controles viram uma coisa só, e o gráfico
+   embaixo passa a ser resposta a uma pergunta visível. */
+.explicacao { margin-top: 0; padding: 22px 26px 20px; }
+.explicacao h2 { margin-bottom: 8px; }
+.explicacao .apoio { max-width: 74ch; }
+.explicacao .eixos { margin: 18px 0 0; }
+
+/* o risco da legenda é a mediana, e ela é tracejada no gráfico */
+.legenda-cores .risco {
+  width: 18px;
+  height: 0;
+  border-top: 1.6px dashed #a9760a;
+  border-radius: 0;
+}
+
+.serie { margin-top: 22px; }
+
 /* ============ pedido de chave e console de teste ============ */
 
 .console { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }

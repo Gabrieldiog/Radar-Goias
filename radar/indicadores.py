@@ -436,6 +436,34 @@ def serie_fogo(conn, codigo_ibge: str | None = None) -> list[dict]:
         return cur.execute(SERIE_FOGO, (codigo_ibge, codigo_ibge)).fetchall()
 
 
+# A fonte publica uma linha por município por mês mesmo quando não houve
+# homicídio nenhum: das 1.722 linhas, 1.483 têm zero vítima. Contar linha em
+# vez de ocorrência dizia que os 246 municípios tiveram homicídio em janeiro,
+# quando foram 29.
+#
+# Sete meses de 2026 é tudo que a Secretaria publicou, e é o bastante para a
+# aba "Como mudou" deixar de ter só dois assuntos. Só homicídio doloso entra:
+# latrocínio e morte no trânsito são outros crimes, e somar tudo mudaria o que
+# o número quer dizer.
+SERIE_HOMICIDIO = """
+select ano,
+       mes,
+       sum(vitimas)::int as vitimas,
+       count(distinct codigo_ibge) filter (where vitimas > 0)::int as municipios
+from ocorrencia
+where evento = 'Homicídio doloso'
+  and (%s::text is null or codigo_ibge = %s::text)
+group by ano, mes
+having sum(vitimas) > 0
+order by ano, mes
+"""
+
+
+def serie_homicidio(conn, codigo_ibge: str | None = None) -> list[dict]:
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(SERIE_HOMICIDIO, (codigo_ibge, codigo_ibge)).fetchall()
+
+
 # A primeira medida de distância do projeto, e ela não precisou de dependência
 # nova: haversine em SQL puro, sem PostGIS.
 #

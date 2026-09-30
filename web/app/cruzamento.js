@@ -7,6 +7,7 @@
 
 // a mesma rampa do mapa e da faixa: cinco grupos, cinco degraus
 import { RAMPA } from "./rampa";
+import { curto, escada } from "./serie";
 const GRUPOS = 5;
 
 // centavos e décimos em número de quatro dígitos só atrapalham a leitura
@@ -39,15 +40,18 @@ export default function Cruzamento({ pontos, x, y, selecionado }) {
 
   const largura = 940;
   const altura = 330;
-  const margem = { cima: 44, baixo: 96, esquerda: 10, direita: 10 };
+  const margem = { cima: 34, baixo: 96, esquerda: 58, direita: 14 };
   const util = {
     largura: largura - margem.esquerda - margem.direita,
     altura: altura - margem.cima - margem.baixo,
   };
   const maximo = Math.max(...grupos.map((g) => g.valor)) || 1;
+  const { alto, passo } = escada(maximo);
+  const marcas = [0, 1, 2, 3, 4].map((n) => passo * n);
   const fatia = util.largura / GRUPOS;
   const barra = Math.min(fatia * 0.56, 108);
   const base = margem.cima + util.altura;
+  const ay = (v) => base - (v / alto) * util.altura;
   const cx = (i) => margem.esquerda + fatia * i + fatia / 2;
 
   const primeiro = grupos[0];
@@ -79,17 +83,26 @@ export default function Cruzamento({ pontos, x, y, selecionado }) {
       <div className="grafico-caixa">
         <svg viewBox={`0 0 ${largura} ${altura}`} className="grafico" role="img"
            aria-label={`${y.rotulo} de cada grupo de municípios, agrupados por ${x.curto}`}>
-        <text x={margem.esquerda} y={16} className="eixo-titulo">
+        <text x={0} y={14} className="eixo-titulo">
           {y.rotulo}, em {y.unidade}
         </text>
-        <line x1={margem.esquerda} x2={largura - margem.direita} y1={base} y2={base}
-              stroke="#b6c2c4" />
+        {/* sem eixo de valor, quem olhava não sabia se a terceira barra era um
+            terço maior que a primeira ou o dobro */}
+        {marcas.map((v) => (
+          <g key={v}>
+            <line x1={margem.esquerda} x2={largura - margem.direita} y1={ay(v)} y2={ay(v)}
+                  stroke={v === 0 ? "#9aa9ab" : "#e4eaea"} />
+            <text x={margem.esquerda - 10} y={ay(v) + 4} textAnchor="end" className="eixo">
+              {curto(v)}
+            </text>
+          </g>
+        ))}
         {grupos.map((g, i) => {
-          const h = Math.max(2, (g.valor / maximo) * util.altura);
+          const h = Math.max(2, base - ay(g.valor));
           return (
             <g key={i}>
-              <rect x={cx(i) - barra / 2} y={base - h} width={barra} height={h}
-                    fill={RAMPA[i]} stroke={g.tem ? "#a9760a" : "#b6c2c4"}
+              <rect x={cx(i) - barra / 2} y={base - h} width={barra} height={h} rx="3"
+                    fill={RAMPA[i]} stroke={g.tem ? "#a9760a" : "#c3cfd0"}
                     strokeWidth={g.tem ? 2.5 : 0.8}>
                 <title>{`${g.quantos} municípios, de ${num(g.de)} a ${num(g.ate)} em ${x.curto}`}</title>
               </rect>

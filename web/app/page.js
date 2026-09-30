@@ -5,6 +5,7 @@ import Link from "next/link";
 import Mapa from "./mapa";
 import Tabela from "./tabela";
 import Evolucao from "./evolucao";
+import Serie from "./serie";
 import Cruzamento from "./cruzamento";
 import Aprendizagem from "./aprendizagem";
 import Cobertura from "./cobertura";
@@ -18,6 +19,60 @@ const ABAS = [
   ["cruzamento", "Uma coisa explica a outra?"],
   ["evolucao", "Como mudou"],
 ];
+
+const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+// Quatro assuntos, quatro grãos de tempo. O grão não é escolha de desenho: é o
+// que cada fonte publica. A Secretaria de Segurança fecha por mês, o INPE
+// publica por dia, e o INEP só existe de dois em dois anos.
+const ASSUNTOS = {
+  dengue: {
+    rotulo: "Casos de dengue, por ano",
+    titulo: "Casos notificados",
+    apoio: "Dezessete anos da mesma base, para ver se um ano ruim foi fora do comum ou rotina.",
+  },
+  ideb: {
+    rotulo: "IDEB dos anos iniciais, por edição",
+    titulo: "Nota de 0 a 10",
+    apoio: "Vinte anos de nota, com as duas metades que a formam separadas.",
+  },
+  homicidio: {
+    rotulo: "Homicídio doloso, por mês",
+    titulo: "Vítimas no mês",
+    apoio:
+      "Os meses que a Secretaria de Segurança já fechou em 2026. Só homicídio doloso: latrocínio e morte no trânsito são outros crimes.",
+  },
+  fogo: {
+    rotulo: "Focos de queimada, por dia",
+    titulo: "Focos detectados",
+    apoio:
+      "Os últimos sete dias do INPE. Um foco é uma detecção de satélite, não um incêndio: doze satélites cobrem o Brasil e vários veem o mesmo fogo.",
+  },
+};
+
+function pontosDaSerie(assunto, serie) {
+  const corrente = new Date().getFullYear();
+  if (assunto === "dengue")
+    return serie.map((p) => ({
+      rotulo: String(p.ano),
+      valor: p.casos,
+      parcial: p.ano === corrente,
+      detalhe: `${p.municipios} municípios`,
+    }));
+  if (assunto === "homicidio")
+    return serie.map((p) => ({
+      rotulo: MESES[p.mes - 1],
+      valor: p.vitimas,
+      detalhe: `${p.municipios} municípios`,
+    }));
+  if (assunto === "fogo")
+    return serie.map((p) => ({
+      rotulo: `${p.dia.slice(8, 10)}/${p.dia.slice(5, 7)}`,
+      valor: p.focos,
+      detalhe: `${p.municipios} municípios`,
+    }));
+  return [];
+}
 
 // "goiania" precisa achar "Goiânia": quem digita rápido não põe acento, e o
 // backend já normaliza do mesmo jeito para cruzar as fontes
@@ -170,48 +225,56 @@ export default function Painel() {
 
         {!erro && aba === "evolucao" && (
           <section className="vista">
-            <h2>{assunto === "dengue" ? "Casos de dengue, ano a ano" : "IDEB, ano a ano"}</h2>
-            <p className="apoio">
-              {assunto === "dengue"
-                ? "Dezessete anos da mesma base, para ver se um ano ruim foi fora do comum ou rotina."
-                : "Vinte anos de nota, com as duas metades que a formam separadas."}
-            </p>
-            <div className="eixos">
-              <label>
-                O que
-                <select value={assunto} onChange={(e) => setAssunto(e.target.value)}>
-                  <option value="dengue">Casos de dengue</option>
-                  <option value="ideb">IDEB dos anos iniciais</option>
-                </select>
-              </label>
-              <label>
-                Onde
-                <select value={ondeSerie} onChange={(e) => setOndeSerie(e.target.value)}>
-                  <option value="">Goiás inteiro, somando os 246 municípios</option>
-                  {municipios.map((m) => (
-                    <option key={m.codigo_ibge} value={m.codigo_ibge}>{m.nome}</option>
-                  ))}
-                </select>
-              </label>
+            <div className="cartela explicacao">
+              <h2>{ASSUNTOS[assunto].rotulo}</h2>
+              <p className="apoio">{ASSUNTOS[assunto].apoio}</p>
+              <div className="eixos">
+                <label>
+                  O que
+                  <select value={assunto} onChange={(e) => setAssunto(e.target.value)}>
+                    {Object.entries(ASSUNTOS).map(([id, v]) => (
+                      <option key={id} value={id}>{v.rotulo}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Onde
+                  <select value={ondeSerie} onChange={(e) => setOndeSerie(e.target.value)}>
+                    <option value="">Goiás inteiro, somando os 246 municípios</option>
+                    {municipios.map((m) => (
+                      <option key={m.codigo_ibge} value={m.codigo_ibge}>{m.nome}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
             </div>
             {!serie ? (
               <p className="aviso carregando">Carregando a série.</p>
+            ) : assunto === "ideb" ? (
+              <Aprendizagem serie={serie} onde={ondeNome} />
             ) : assunto === "dengue" ? (
               <Evolucao serie={serie} onde={ondeNome} />
             ) : (
-              <Aprendizagem serie={serie} onde={ondeNome} />
+              <Serie
+                pontos={pontosDaSerie(assunto, serie)}
+                titulo={ASSUNTOS[assunto].titulo}
+                descricao={`${ASSUNTOS[assunto].rotulo} em ${ondeNome}`}
+              />
             )}
           </section>
         )}
 
         {!erro && aba === "cruzamento" && (
           <section className="vista">
-            <h2>Uma coisa explica a outra?</h2>
-            <p className="apoio">
-              Escolha dois indicadores. Os municípios entram em cinco grupos pelo primeiro, e as
-              barras mostram quanto cada grupo tem do segundo.
-            </p>
-            <div className="eixos">
+            <div className="cartela explicacao">
+              <h2>Uma coisa explica a outra?</h2>
+              <p className="apoio">
+                Escolha dois indicadores. Os 246 municípios entram em cinco grupos pelo primeiro,
+                do menor para o maior, e a altura de cada barra é quanto aquele grupo tem do
+                segundo. Se as barras sobem em degrau, uma coisa acompanha a outra. Se ficam
+                parelhas, não acompanha.
+              </p>
+              <div className="eixos">
               <label>
                 Agrupar os municípios por
                 <select value={eixoX} onChange={(e) => setEixoX(e.target.value)}>
@@ -224,6 +287,7 @@ export default function Painel() {
                   {MAPEAVEIS.map(([id, v]) => <option key={id} value={id}>{v.rotulo}</option>)}
                 </select>
               </label>
+              </div>
             </div>
             {cruzados?.id === `${eixoX}|${eixoY}` ? (
               <Cruzamento

@@ -12,6 +12,15 @@ async function busca(caminho) {
 
 const NUM = (v) => (v == null ? "" : v.toLocaleString("pt-BR"));
 
+// A página tinha duas tabelas e mais nada. Ler que um conjunto tem 50.320
+// linhas e outro tem 246 não diz de relance quem carrega o peso da coleta: a
+// barra atrás do número diz. A raiz abre a parte de baixo da escala, senão os
+// conjuntos pequenos somem atrás do maior.
+function Peso({ valor, maximo }) {
+  const fracao = maximo > 0 ? Math.sqrt(valor / maximo) : 0;
+  return <span className="peso" style={{ "--fracao": `${(fracao * 100).toFixed(1)}%` }} />;
+}
+
 function tamanho(bytes) {
   if (!bytes) return "sem corpo";
   if (bytes >= 1e6) return `${(bytes / 1e6).toFixed(1).replace(".", ",")} MB`;
@@ -49,6 +58,8 @@ export default function Procedencia() {
   const linhas = dados.conjuntos.reduce((s, c) => s + c.linhas, 0);
   const recusadas = dados.fontes.reduce((s, f) => s + f.recusadas, 0);
   const coletas = dados.fontes.reduce((s, f) => s + f.coletas, 0);
+  const maiorConjunto = Math.max(...dados.conjuntos.map((c) => c.linhas), 1);
+  const maiorFonte = Math.max(...dados.fontes.map((f) => f.coletas), 1);
 
   return (
     <>
@@ -65,6 +76,26 @@ export default function Procedencia() {
           ? ` ${NUM(recusadas)} foram recusadas pelo servidor e ficaram registradas como recusa, em vez de sumirem.`
           : " Nenhuma foi recusada."}
       </p>
+
+      <div className="tiles">
+        {[
+          { rotulo: "Linhas guardadas", valor: NUM(linhas), apoio: `em ${dados.conjuntos.length} conjuntos` },
+          { rotulo: "Requisições feitas", valor: NUM(coletas), apoio: "uma por segundo, no máximo" },
+          { rotulo: "Fontes públicas", valor: String(dados.fontes.length), apoio: "nenhuma conversa com a outra" },
+          {
+            rotulo: "Recusadas",
+            valor: recusadas ? NUM(recusadas) : "nenhuma",
+            apoio: recusadas ? "ficaram registradas" : "todas responderam",
+            calma: recusadas === 0,
+          },
+        ].map((f, i) => (
+          <div key={f.rotulo} className={`tile${f.calma ? " calma" : ""}`} style={{ "--i": i }}>
+            <span className="tile-rotulo">{f.rotulo}</span>
+            <strong className="tile-valor">{f.valor}</strong>
+            <span className="tile-apoio">{f.apoio}</span>
+          </div>
+        ))}
+      </div>
 
       <section className="vista bloco-eixo">
         <h2>O que está guardado, e de quando</h2>
@@ -84,7 +115,10 @@ export default function Procedencia() {
               {dados.conjuntos.map((c) => (
                 <tr key={c.tabela}>
                   <td>{c.tabela}</td>
-                  <td className="num">{NUM(c.linhas)}</td>
+                  <td className="num com-peso">
+                    <Peso valor={c.linhas} maximo={maiorConjunto} />
+                    {NUM(c.linhas)}
+                  </td>
                   <td title={c.url || ""}>{c.url ? dominio(c.url) : "carga anterior"}</td>
                   <td className={c.status_http >= 400 ? "num recusa" : "num"}>
                     {c.status_http ?? "sem registro"}
@@ -115,7 +149,10 @@ export default function Procedencia() {
               {dados.fontes.map((f) => (
                 <tr key={f.fonte}>
                   <td>{f.fonte}</td>
-                  <td className="num">{NUM(f.coletas)}</td>
+                  <td className="num com-peso">
+                    <Peso valor={f.coletas} maximo={maiorFonte} />
+                    {NUM(f.coletas)}
+                  </td>
                   <td className={f.recusadas ? "num recusa" : "num"}>{NUM(f.recusadas)}</td>
                   <td className="num">{tamanho(f.bytes)}</td>
                   <td>{quando(f.ultima)}</td>

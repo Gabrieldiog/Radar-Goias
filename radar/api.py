@@ -473,6 +473,19 @@ def cria_app(limite: str = "60/minute") -> FastAPI:
     # 18 regiões de saúde, que é como o estado organiza a rede de fato. É um
     # nível de comparação que não existe em nenhum outro indicador do painel.
     # a única série do painel que se move de um dia para o outro
+    @app.get("/v1/series/homicidio")
+    def serie_homicidio(
+        request: Request, municipio: str | None = None, chave: str = Depends(exige_chave)
+    ):
+        with banco.conecta() as conn:
+            linhas = indicadores.serie_homicidio(conn, municipio)
+        return {
+            "dados": linhas,
+            "total": len(linhas),
+            "fontes": ["observatorio.ssp.go.gov.br"],
+            "ressalva": "só homicídio doloso; latrocínio e morte no trânsito ficam de fora",
+        }
+
     @app.get("/v1/series/fogo")
     def serie_fogo(
         request: Request, municipio: str | None = None, chave: str = Depends(exige_chave)

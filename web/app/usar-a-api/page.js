@@ -72,6 +72,7 @@ export default function UsarApi() {
             <code>meta</code> de onde aquilo veio. Indicador por habitante traz o denominador em
             cada linha, para você conferir a conta.
           </p>
+          <div className="cartela">
           <Codigo>{`{
   "dados": [
     {
@@ -90,6 +91,7 @@ export default function UsarApi() {
     "fontes": ["dadosabertos.go.gov.br", "servicodados.ibge.gov.br"]
   }
 }`}</Codigo>
+          </div>
         </section>
 
         <section className="vista bloco-eixo">
@@ -98,6 +100,7 @@ export default function UsarApi() {
             Esta tabela é o retorno de <code>GET /v1/indicadores</code> lido ao vivo. Se um
             indicador entrar amanhã, ele aparece aqui sozinho.
           </p>
+          <div className="cartela">
           <div className="rolagem">
             <table className="tabela registro">
               <thead>
@@ -118,28 +121,35 @@ export default function UsarApi() {
               </tbody>
             </table>
           </div>
+          </div>
           {catalogo.length === 0 && <p className="aviso carregando">Carregando o catálogo.</p>}
         </section>
 
         <section className="vista bloco-eixo">
           <h2>As regras</h2>
           <dl className="regras">
-            <dt>60 requisições por minuto</dt>
-            <dd>
-              Contadas por chave e não por IP. Numa faculdade todo mundo sai pelo mesmo IP, e um
-              balde compartilhado faria um usuário derrubar os colegas. Ao estourar, a resposta é
-              429, e os cabeçalhos <code>X-RateLimit-*</code> dizem quando reabre.
-            </dd>
-            <dt>Toda resposta declara a fonte</dt>
-            <dd>
-              E <code>GET /v1/procedencia</code> devolve o endereço, o status e a data de cada
-              coleta. Nenhum número daqui existe sem essa linha.
-            </dd>
-            <dt>Município pequeno oscila</dt>
-            <dd>
-              Poucos casos numa cidade de dois mil habitantes viram uma taxa alta que não se
-              repete no ano seguinte. Vale para todo indicador por habitante.
-            </dd>
+            <div className="regra">
+              <dt>60 requisições por minuto</dt>
+              <dd>
+                Contadas por chave e não por IP. Numa faculdade todo mundo sai pelo mesmo IP, e
+                um balde compartilhado faria um usuário derrubar os colegas. Ao estourar, a
+                resposta é 429, e os cabeçalhos <code>X-RateLimit-*</code> dizem quando reabre.
+              </dd>
+            </div>
+            <div className="regra">
+              <dt>Toda resposta declara a fonte</dt>
+              <dd>
+                E <code>GET /v1/procedencia</code> devolve o endereço, o status e a data de cada
+                coleta. Nenhum número daqui existe sem essa linha.
+              </dd>
+            </div>
+            <div className="regra">
+              <dt>Município pequeno oscila</dt>
+              <dd>
+                Poucos casos numa cidade de dois mil habitantes viram uma taxa alta que não se
+                repete no ano seguinte. Vale para todo indicador por habitante.
+              </dd>
+            </div>
           </dl>
         </section>
 

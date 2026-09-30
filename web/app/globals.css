@@ -1026,37 +1026,49 @@ code {
    401. O número fica na margem para a leitura do texto não tropeçar nele. */
 .passos { list-style: none; margin: 0; padding: 0; counter-reset: passo; }
 
+/* Cada passo é um cartão, e o número mora na quina de cima, a cavaleiro da
+   borda: quem bate o olho conta três coisas a fazer antes de ler qualquer
+   palavra. O trilho vertical some, porque a pilha de cartões já é a ordem. */
 .passos > li {
   counter-increment: passo;
   position: relative;
-  padding: 0 0 28px 46px;
-  border-left: 1px solid var(--linha);
-  margin-left: 13px;
+  margin: 0 0 16px;
+  padding: 22px 26px 24px;
+  background: var(--carta);
+  border: 1px solid var(--carta-borda);
+  border-radius: 12px;
+  box-shadow: var(--sombra-baixa);
+  animation: sobe 0.45s var(--curva) backwards;
+  animation-delay: calc(var(--passo-i, 0) * 70ms);
 }
 
-.passos > li:last-child { border-left-color: transparent; padding-bottom: 0; }
+.passos > li:last-child { margin-bottom: 0; }
 
 .passos > li::before {
   content: counter(passo);
   position: absolute;
-  left: -13px;
-  top: 0;
-  width: 26px;
-  height: 26px;
+  left: 22px;
+  top: -14px;
+  width: 28px;
+  height: 28px;
   display: grid;
   place-items: center;
-  background: var(--papel);
-  border: 1px solid var(--borda-controle);
+  background: var(--fundo);
   border-radius: 50%;
   font-family: var(--mono), monospace;
-  font-size: 0.78rem;
-  color: var(--tinta-suave);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #fff;
 }
+
+.passos > li:nth-child(1) { --passo-i: 0; }
+.passos > li:nth-child(2) { --passo-i: 1; }
+.passos > li:nth-child(3) { --passo-i: 2; }
 
 /* h3 no resto do painel é rótulo de seção, em caixa alta. Aqui é o título do
    passo, que a pessoa lê como frase. */
 .passos h3 {
-  margin: 2px 0 6px;
+  margin: 8px 0 6px;
   font-family: var(--fonte), sans-serif;
   font-size: 1rem;
   letter-spacing: 0;
@@ -1066,10 +1078,40 @@ code {
 }
 .passos p { margin: 0; color: var(--tinta-suave); font-size: 0.93rem; max-width: 56ch; }
 
-.regras { margin: 0; max-width: 62ch; }
-.regras dt { font-weight: 600; margin-top: 20px; }
-.regras dt:first-child { margin-top: 0; }
-.regras dd { margin: 4px 0 0; color: var(--tinta-suave); font-size: 0.93rem; }
+/* Três regras lado a lado, cada uma num cartão. Empilhadas numa lista de
+   definição elas viravam parágrafo corrido, e a pessoa passava direto pelo
+   limite de requisições, que é justamente o que trava quem está integrando. */
+.regras {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0;
+}
+
+.regras .regra {
+  background: var(--carta);
+  border: 1px solid var(--carta-borda);
+  border-top: 3px solid var(--ouro);
+  border-radius: 0 0 12px 12px;
+  padding: 18px 20px 20px;
+}
+
+.regras dt { font-weight: 600; margin: 0 0 6px; }
+.regras dd { margin: 0; color: var(--tinta-suave); font-size: 0.9rem; }
+
+/* o bloco de código e a tabela também ganham o cartão, para a página inteira
+   ser feita da mesma matéria */
+.cartela {
+  background: var(--carta);
+  border: 1px solid var(--carta-borda);
+  border-radius: 12px;
+  box-shadow: var(--sombra-baixa);
+  padding: 20px 22px 18px;
+  margin-top: 16px;
+}
+
+.cartela > .codigo { margin-top: 0; }
+.cartela .rolagem { margin: 0; }
 
 /* a fórmula é longa e não cabe na coluna sem quebrar */
 .registro td.conta {
@@ -1138,6 +1180,9 @@ code {
   .abas button { padding-inline: 0; margin-right: 20px; }
   .codigo { padding: 12px 13px; font-size: 0.76rem; }
   .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .regras { grid-template-columns: 1fr; }
+  .passos > li { padding: 22px 16px 20px; }
+  .cartela { padding: 14px 14px 12px; }
   .torres { height: 86px; }
   .faixa-246 figcaption { flex-direction: column; gap: 2px; }
   .faixa-246 figcaption strong { text-align: left; }

@@ -10,6 +10,7 @@ import Cruzamento from "./cruzamento";
 import Aprendizagem from "./aprendizagem";
 import Cobertura from "./cobertura";
 import Resumo from "./resumo";
+import AoVivo from "./aovivo";
 import { EIXOS, INDICADORES, fmt } from "./indicadores";
 
 const MAPEAVEIS = Object.entries(INDICADORES).filter(([, v]) => v.eixo !== "Atendimento ao cidadão");
@@ -337,6 +338,8 @@ export default function Painel() {
                     {resposta.meta.ressalva}
                   </p>
                 )}
+
+                {escolhido === "focos-de-queimada" && <AoVivo />}
 
                 {porOrgao ? (
                   <div className="rolagem">

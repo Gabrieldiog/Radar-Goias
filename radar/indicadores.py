@@ -436,6 +436,22 @@ def serie_fogo(conn, codigo_ibge: str | None = None) -> list[dict]:
         return cur.execute(SERIE_FOGO, (codigo_ibge, codigo_ibge)).fetchall()
 
 
+# Os focos chegam ao longo do dia, e não de uma vez: o GOES-19 é geoestacionário
+# e reporta quase de hora em hora, enquanto os polares passam de madrugada e no
+# fim da tarde. É isso que a tela ao vivo mostra chegando.
+FOCOS_RECENTES = """
+select f.id, f.codigo_ibge, m.nome, f.detectado_em, f.satelite, f.bioma, f.frp
+from foco_queimada f join municipio m using (codigo_ibge)
+order by f.detectado_em desc, f.id
+limit %s
+"""
+
+
+def focos_recentes(conn, limite: int = 12) -> list[dict]:
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(FOCOS_RECENTES, (limite,)).fetchall()
+
+
 # A fonte publica uma linha por município por mês mesmo quando não houve
 # homicídio nenhum: das 1.722 linhas, 1.483 têm zero vítima. Contar linha em
 # vez de ocorrência dizia que os 246 municípios tiveram homicídio em janeiro,

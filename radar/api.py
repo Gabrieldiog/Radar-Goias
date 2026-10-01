@@ -486,6 +486,20 @@ def cria_app(limite: str = "60/minute") -> FastAPI:
             "ressalva": "só homicídio doloso; latrocínio e morte no trânsito ficam de fora",
         }
 
+    # O painel chama esta rota de meia em meia hora para mostrar o que acabou de
+    # chegar. O limite é pequeno de propósito: é uma lista para ler, não um
+    # despejo da tabela.
+    @app.get("/v1/fogo/recentes")
+    def fogo_recentes(request: Request, limite: int = 12, chave: str = Depends(exige_chave)):
+        with banco.conecta() as conn:
+            linhas = indicadores.focos_recentes(conn, min(max(limite, 1), 50))
+        return {
+            "dados": linhas,
+            "total": len(linhas),
+            "fontes": ["dataserver-coids.inpe.br"],
+            "ressalva": "um foco é uma detecção de satélite, não um incêndio",
+        }
+
     @app.get("/v1/series/fogo")
     def serie_fogo(
         request: Request, municipio: str | None = None, chave: str = Depends(exige_chave)

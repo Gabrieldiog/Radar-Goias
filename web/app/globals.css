@@ -1189,6 +1189,84 @@ code {
   );
 }
 
+
+/* ============ queimadas ao vivo ============ */
+
+.aovivo {
+  margin-top: 24px;
+  padding: 22px 26px 20px;
+  background: var(--carta);
+  border: 1px solid var(--carta-borda);
+  border-radius: 12px;
+  box-shadow: var(--sombra-baixa);
+}
+
+.aovivo h3 { display: flex; align-items: center; gap: 9px; padding-bottom: 6px; }
+
+/* O ponto só pisca quando a página está mesmo buscando. Piscar o tempo todo
+   seria enfeite dizendo que algo acontece quando nada acontece. */
+.pulso {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--linha-forte);
+  transition: background 0.3s var(--curva);
+}
+
+.pulso.batendo { background: var(--alarme); animation: bate 1s ease-in-out infinite; }
+
+@keyframes bate {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(1.35); }
+}
+
+.aovivo .desde {
+  margin: 14px 0 0;
+  max-width: none;
+  font-size: 1.05rem;
+}
+
+.aovivo .desde strong { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.chegaram {
+  margin: 12px 0 0;
+  padding: 9px 13px;
+  background: #fbf3df;
+  border-left: 3px solid var(--ouro);
+  border-radius: 0 6px 6px 0;
+  font-size: 0.88rem;
+  max-width: none;
+  animation: sobe 0.4s var(--curva) backwards;
+}
+
+.deteccoes { list-style: none; margin: 16px 0 0; padding: 0; }
+
+.deteccoes li {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr 7.5rem 6rem;
+  gap: 10px;
+  align-items: baseline;
+  padding: 8px 0;
+  border-top: 1px solid var(--linha);
+  font-size: 0.88rem;
+  animation: sobe 0.35s var(--curva) backwards;
+}
+
+.deteccoes .quando,
+.deteccoes .quem,
+.deteccoes .forca {
+  font-family: var(--mono), monospace;
+  font-size: 0.8rem;
+  color: var(--tinta-suave);
+}
+
+.deteccoes .forca { text-align: right; }
+
+@media (max-width: 700px) {
+  .deteccoes li { grid-template-columns: 4rem 1fr; }
+  .deteccoes .quem, .deteccoes .forca { display: none; }
+}
+
 /* ============ cartão que explica a aba ============ */
 
 /* As duas abas abriam com título, parágrafo e dois seletores soltos no papel.

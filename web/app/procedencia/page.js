@@ -100,10 +100,14 @@ export default function Procedencia() {
           : " Nenhuma foi recusada."}
       </p>
 
+      {/* o horário muda por conjunto, e dizer só "às 4h" fazia a página parecer
+          mentirosa quando alguém rodava a coleta na mão no meio da tarde */}
       <p className="apoio aviso-coleta">
-        A coleta roda sozinha todo dia às 4h da manhã, e aos domingos busca também segurança,
-        educação e finanças, que são arquivos grandes e mudam de mês em mês. A última terminou{" "}
-        <strong>{faz_quanto(recente)}</strong>, em {quando(recente)}.
+        A coleta roda sozinha em três ritmos, que são os das próprias fontes: queimadas de meia
+        em meia hora, porque o INPE vai enchendo o arquivo do dia conforme os satélites passam;
+        saúde, dengue e ouvidoria todo dia às 4h; e segurança, educação e finanças aos domingos,
+        porque são arquivos de centenas de megabytes que mudam de mês em mês. A coleta mais
+        recente terminou <strong>{faz_quanto(recente)}</strong>, em {quando(recente)}.
       </p>
 
       <div className="tiles">

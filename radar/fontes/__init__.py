@@ -5,14 +5,16 @@
 #
 # O apelido continua sendo a chave, porque é o que está gravado em milhares de
 # linhas da tabela de coleta. Aqui mora só a tradução.
+# Por extenso, e não pela sigla: quem abre esta página não é obrigado a saber
+# o que é INEP, SICONFI ou SINESP.
 NOME_DA_FONTE = {
     "ckan-go": "Portal de Dados Abertos de Goiás",
-    "ibge": "IBGE",
-    "siconfi": "Tesouro Nacional, SICONFI",
-    "sinesp": "Ministério da Justiça, SINESP",
-    "inpe-fogo": "INPE, Programa Queimadas",
-    "inep-ideb": "INEP, IDEB",
-    "inep": "INEP, Censo Escolar",
+    "ibge": "Instituto Brasileiro de Geografia e Estatística",
+    "siconfi": "Tesouro Nacional",
+    "sinesp": "Ministério da Justiça e Segurança Pública",
+    "inpe-fogo": "Instituto Nacional de Pesquisas Espaciais",
+    "inep-ideb": "Instituto Nacional de Estudos e Pesquisas Educacionais, IDEB",
+    "inep": "Instituto Nacional de Estudos e Pesquisas Educacionais, censo escolar",
 }
 
 

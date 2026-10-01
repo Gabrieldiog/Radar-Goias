@@ -25,10 +25,10 @@ def test_todo_apelido_tem_nome(apelido):
     "apelido,esperado",
     [
         ("ckan-go", "Portal de Dados Abertos de Goiás"),
-        ("ibge", "IBGE"),
+        ("ibge", "Instituto Brasileiro de Geografia e Estatística"),
         ("siconfi", "Tesouro Nacional"),
-        ("sinesp", "Ministério da Justiça"),
-        ("inpe-fogo", "INPE"),
+        ("sinesp", "Ministério da Justiça e Segurança Pública"),
+        ("inpe-fogo", "Instituto Nacional de Pesquisas Espaciais"),
     ],
 )
 def test_o_nome_e_o_da_instituicao(apelido, esperado):
@@ -41,7 +41,8 @@ def test_o_nome_e_o_da_instituicao(apelido, esperado):
 def test_as_duas_do_inep_se_distinguem():
     a, b = nome_da_fonte("inep-ideb"), nome_da_fonte("inep")
     assert a != b
-    assert a.startswith("INEP") and b.startswith("INEP")
+    assert a.startswith("Instituto Nacional de Estudos")
+    assert b.startswith("Instituto Nacional de Estudos")
 
 
 # Verifica que apelido desconhecido devolve ele mesmo, em vez de quebrar. Fonte
@@ -53,3 +54,10 @@ def test_apelido_desconhecido_devolve_ele_mesmo():
 # Verifica que nenhum nome vem vazio ou só com espaço.
 def test_nenhum_nome_vazio():
     assert all(n.strip() for n in NOME_DA_FONTE.values())
+
+
+# Verifica que nenhum nome é só uma sigla. Quem abre a página não é obrigado a
+# saber o que significa INEP, SICONFI ou SINESP.
+@pytest.mark.parametrize("sigla", ["IBGE", "INEP", "INPE", "SICONFI", "SINESP"])
+def test_nenhum_nome_e_so_sigla(sigla):
+    assert sigla not in NOME_DA_FONTE.values()

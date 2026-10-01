@@ -1167,6 +1167,9 @@ code {
 
 
 
+.aviso-coleta { margin-top: 14px; max-width: 72ch; font-size: 0.88rem; }
+.aviso-coleta strong { color: var(--tinta); font-weight: 600; }
+
 /* a barra mora atrás do número, encostada na base da linha */
 .registro td.com-peso { position: relative; }
 

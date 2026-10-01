@@ -28,10 +28,28 @@ function tamanho(bytes) {
   return `${bytes} B`;
 }
 
+// A hora importa tanto quanto o dia: é ela que mostra que a coleta das quatro
+// da manhã rodou mesmo. Sem ela, "27 de setembro" não distingue dado buscado
+// hoje de dado parado há meses.
 function quando(iso) {
   if (!iso) return "sem registro";
   const d = new Date(iso);
-  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+  return d.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function faz_quanto(iso) {
+  if (!iso) return "";
+  const horas = (Date.now() - new Date(iso)) / 3600000;
+  if (horas < 1) return "agora há pouco";
+  if (horas < 24) return `há ${Math.round(horas)} horas`;
+  const dias = Math.round(horas / 24);
+  return dias === 1 ? "ontem" : `há ${dias} dias`;
 }
 
 // endereço de API é longo e cheio de parâmetro; o domínio é o que responde a
@@ -60,6 +78,11 @@ export default function Procedencia() {
   const coletas = dados.fontes.reduce((s, f) => s + f.coletas, 0);
   const maiorConjunto = Math.max(...dados.conjuntos.map((c) => c.linhas), 1);
   const maiorFonte = Math.max(...dados.fontes.map((f) => f.coletas), 1);
+  const recente = dados.conjuntos
+    .map((c) => c.executada_em)
+    .filter(Boolean)
+    .sort()
+    .at(-1);
 
   return (
     <>
@@ -77,11 +100,21 @@ export default function Procedencia() {
           : " Nenhuma foi recusada."}
       </p>
 
+      <p className="apoio aviso-coleta">
+        A coleta roda sozinha todo dia às 4h da manhã, e aos domingos busca também segurança,
+        educação e finanças, que são arquivos grandes e mudam de mês em mês. A última terminou{" "}
+        <strong>{faz_quanto(recente)}</strong>, em {quando(recente)}.
+      </p>
+
       <div className="tiles">
         {[
           { rotulo: "Linhas guardadas", valor: NUM(linhas), apoio: `em ${dados.conjuntos.length} conjuntos` },
           { rotulo: "Requisições feitas", valor: NUM(coletas), apoio: "uma por segundo, no máximo" },
-          { rotulo: "Fontes públicas", valor: String(dados.fontes.length), apoio: "nenhuma conversa com a outra" },
+          {
+            rotulo: "Última coleta",
+            valor: faz_quanto(recente),
+            apoio: quando(recente),
+          },
           {
             rotulo: "Recusadas",
             valor: recusadas ? NUM(recusadas) : "nenhuma",

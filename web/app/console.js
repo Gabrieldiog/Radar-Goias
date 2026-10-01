@@ -1,18 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // O pedido de chave e o teste dela, na mesma tela. Antes a documentação dizia
 // "peça uma chave" sem dizer a quem, porque não havia a quem pedir: a chave
 // era uma variável de ambiente que alguém editava no servidor à mão.
 
-const ROTAS = [
-  ["/v1/municipios", "Os 246 municípios, com código e nome"],
-  ["/v1/indicadores", "O catálogo dos indicadores"],
-  ["/v1/indicadores/incidencia-dengue", "Dengue por 100 mil, nos 246 municípios"],
-  ["/v1/municipios/5208707", "A ficha de Goiânia, com todos os indicadores"],
-  ["/v1/procedencia", "De onde veio cada número"],
-  ["/v1/chaves/minha", "Conferir a minha própria chave"],
+// A lista dos indicadores vem do próprio catálogo da API, e não escrita à mão:
+// indicador que entrar amanhã aparece aqui sozinho, igual à tabela da página.
+const FIXAS = [
+  ["Municípios", [
+    ["/v1/municipios", "Os 246, com código e nome"],
+    ["/v1/municipios/5208707", "A ficha de Goiânia, com todos os indicadores"],
+    ["/v1/municipios/5201405", "A ficha de Aparecida de Goiânia"],
+    ["/v1/comparar?a=5208707&b=5201405", "Goiânia contra Aparecida, lado a lado"],
+  ]],
+  ["Séries, ao longo do tempo", [
+    ["/v1/series/dengue", "Dengue, dezessete anos"],
+    ["/v1/series/dengue?municipio=5208707", "Dengue só em Goiânia"],
+    ["/v1/series/ideb", "IDEB, onze edições"],
+    ["/v1/series/homicidio", "Homicídio doloso, mês a mês"],
+    ["/v1/series/fogo", "Focos de queimada, dia a dia"],
+  ]],
+  ["O sistema", [
+    ["/v1/indicadores", "O catálogo dos indicadores, com a fórmula de cada um"],
+    ["/v1/procedencia", "De onde veio cada número"],
+    ["/v1/malha", "O contorno dos 246 municípios, em GeoJSON"],
+    ["/v1/chaves/minha", "Conferir a minha própria chave"],
+    ["/saude", "Só dizer se a API está de pé (não exige chave)"],
+  ]],
 ];
 
 export default function Console({ endereco }) {
@@ -23,10 +39,18 @@ export default function Console({ endereco }) {
   const [erroPedido, setErroPedido] = useState(null);
 
   const [chave, setChave] = useState("");
-  const [rota, setRota] = useState(ROTAS[0][0]);
+  const [rota, setRota] = useState("/v1/municipios");
+  const [catalogo, setCatalogo] = useState([]);
   const [chamando, setChamando] = useState(false);
   const [saida, setSaida] = useState(null);
   const [copiado, setCopiado] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/radar/v1/indicadores")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setCatalogo(d?.dados || []))
+      .catch(() => setCatalogo([]));
+  }, []);
 
   async function pedir(e) {
     e.preventDefault();
@@ -142,7 +166,18 @@ export default function Console({ endereco }) {
           <label>
             O que pedir
             <select value={rota} onChange={(e) => setRota(e.target.value)}>
-              {ROTAS.map(([c, r]) => <option key={c} value={c}>{r}</option>)}
+              {catalogo.length > 0 && (
+                <optgroup label={`Indicadores (${catalogo.length})`}>
+                  {catalogo.map((i) => (
+                    <option key={i.id} value={`/v1/indicadores/${i.id}`}>{i.nome}</option>
+                  ))}
+                </optgroup>
+              )}
+              {FIXAS.map(([grupo, rotas]) => (
+                <optgroup key={grupo} label={grupo}>
+                  {rotas.map(([c, r]) => <option key={c} value={c}>{r}</option>)}
+                </optgroup>
+              ))}
             </select>
           </label>
           <button type="submit" className="principal" disabled={chamando}>

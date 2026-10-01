@@ -2,19 +2,28 @@
 // É o que faz o teste valer: chave errada tem que voltar 401 de verdade.
 const API = process.env.RADAR_API_URL || "http://127.0.0.1:8000";
 
-// só o que a documentação ensina, para esta rota não virar um proxy de tudo
+// Tudo que a documentação ensina, e nada além: esta rota manda a chave de quem
+// está testando, e sem a lista ela viraria um proxy para qualquer endereço.
 const PERMITIDOS = [
   "/v1/municipios",
   "/v1/indicadores",
   "/v1/procedencia",
   "/v1/chaves/minha",
+  "/v1/malha",
+  "/saude",
 ];
-const COM_PARAMETRO = ["/v1/municipios/", "/v1/indicadores/"];
+const COM_PARAMETRO = ["/v1/municipios/", "/v1/indicadores/", "/v1/series/"];
 
 function liberado(caminho) {
+  const [base, busca = ""] = caminho.split("?");
+  // só os parâmetros que as rotas aceitam, e só com valor simples
+  if (busca && !/^(municipio|a|b|etapa|rede)=[\w-]+(&(municipio|a|b|etapa|rede)=[\w-]+)*$/.test(busca)) {
+    return false;
+  }
+  if (base === "/v1/comparar") return busca.includes("a=") && busca.includes("b=");
   return (
-    PERMITIDOS.includes(caminho) ||
-    COM_PARAMETRO.some((p) => caminho.startsWith(p) && /^[\w-]+$/.test(caminho.slice(p.length)))
+    PERMITIDOS.includes(base) ||
+    COM_PARAMETRO.some((p) => base.startsWith(p) && /^[\w-]+$/.test(base.slice(p.length)))
   );
 }
 

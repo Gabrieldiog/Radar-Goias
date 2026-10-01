@@ -439,8 +439,14 @@ def serie_fogo(conn, codigo_ibge: str | None = None) -> list[dict]:
 # Os focos chegam ao longo do dia, e não de uma vez: o GOES-19 é geoestacionário
 # e reporta quase de hora em hora, enquanto os polares passam de madrugada e no
 # fim da tarde. É isso que a tela ao vivo mostra chegando.
+# "at time zone 'UTC'" não move o instante: ele diz que o horário guardado é
+# UTC, que é o que a coluna data_hora_gmt do INPE sempre foi. Sem essa marca o
+# navegador lia 06:50 como horário de Brasília e a tela dizia que a detecção
+# era três horas mais nova do que é.
 FOCOS_RECENTES = """
-select f.id, f.codigo_ibge, m.nome, f.detectado_em, f.satelite, f.bioma, f.frp
+select f.id, f.codigo_ibge, m.nome,
+       f.detectado_em at time zone 'UTC' as detectado_em,
+       f.satelite, f.bioma, f.frp
 from foco_queimada f join municipio m using (codigo_ibge)
 order by f.detectado_em desc, f.id
 limit %s

@@ -9,6 +9,8 @@ Esta consulta é o que deixa a tela mostrar o que acabou de chegar, com o nome
 do município e o satélite que viu.
 """
 
+from datetime import datetime, timezone
+
 import pytest
 
 from radar import banco, indicadores
@@ -75,3 +77,21 @@ def test_traz_a_hora_da_deteccao(conn):
 def test_banco_vazio_nao_quebra(conn):
     conn.execute("truncate foco_queimada")
     assert indicadores.focos_recentes(conn) == []
+
+
+# Verifica que a hora sai com fuso. A coluna do INPE se chama data_hora_gmt e a
+# gente guarda o valor cru, sem marca nenhuma. Quem recebia
+# "2026-10-01T06:50:00" pelado lia como horário de Brasília, e aí a tela dizia
+# que a detecção era três horas mais nova do que é: um recurso que anuncia "há
+# quanto tempo" ficava otimista por três horas.
+def test_a_hora_sai_com_fuso(conn):
+    assert indicadores.focos_recentes(conn)[0]["detectado_em"].tzinfo is not None
+
+
+# Verifica que marcar o fuso não move o instante. O que volta pode estar escrito
+# em qualquer fuso, porque o psycopg usa o da sessão; o que não pode mudar é o
+# momento no tempo, e 12:00 do arquivo é meio-dia em Greenwich.
+def test_marcar_o_fuso_nao_move_o_instante(conn):
+    assert indicadores.focos_recentes(conn)[0]["detectado_em"] == datetime(
+        2026, 10, 1, 12, 0, tzinfo=timezone.utc
+    )

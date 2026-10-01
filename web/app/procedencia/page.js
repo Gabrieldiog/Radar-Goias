@@ -185,7 +185,7 @@ export default function Procedencia() {
             <tbody>
               {dados.fontes.map((f) => (
                 <tr key={f.fonte}>
-                  <td>{f.fonte}</td>
+                  <td title={f.fonte}>{f.nome || f.fonte}</td>
                   <td className="num com-peso">
                     <Peso valor={f.coletas} maximo={maiorFonte} />
                     {NUM(f.coletas)}

@@ -14,6 +14,7 @@ from slowapi.util import get_remote_address
 from pydantic import BaseModel, Field
 
 from radar import banco, chaves as registro, indicadores, malha
+from radar.fontes import nome_da_fonte
 
 CATALOGO = {
     "incidencia-dengue": {
@@ -465,10 +466,14 @@ def cria_app(limite: str = "60/minute") -> FastAPI:
     @app.get("/v1/procedencia")
     def procedencia(request: Request, chave: str = Depends(exige_chave)):
         with banco.conecta() as conn:
-            return {
-                "conjuntos": indicadores.frescor(conn),
-                "fontes": indicadores.por_fonte(conn),
-            }
+            conjuntos = indicadores.frescor(conn)
+            fontes = indicadores.por_fonte(conn)
+        # o apelido continua no campo "fonte", porque é a chave que quem já
+        # consome a API usa; o nome entra ao lado, para a tela não precisar
+        # conhecer os apelidos do coletor
+        for f in fontes:
+            f["nome"] = nome_da_fonte(f["fonte"])
+        return {"conjuntos": conjuntos, "fontes": fontes}
 
     # 18 regiões de saúde, que é como o estado organiza a rede de fato. É um
     # nível de comparação que não existe em nenhum outro indicador do painel.

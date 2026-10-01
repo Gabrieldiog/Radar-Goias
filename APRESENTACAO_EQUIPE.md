@@ -110,9 +110,17 @@ Faça isso: apague um caractere e chame de novo. O 401 aparece em vermelho.
 
 **6. A página "De onde veio cada número".** Feche por aqui.
 
-> **53.227 linhas de dado, trazidas por 292 requisições a 7 fontes públicas, nenhuma recusada.**
-> Toda requisição fica gravada com data, endereço, status e tamanho da resposta. Nenhum número do
-> painel existe sem essa linha.
+> Toda vez que o sistema bate num servidor do governo, ele grava o endereço, a data, o que o
+> servidor respondeu e o tamanho da resposta. São mais de 53 mil registros, trazidos por quase
+> trezentos pedidos a sete fontes, e **nenhum pedido foi recusado**. É isso que permite rastrear
+> qualquer número do painel até a requisição que o trouxe.
+
+Os números exatos estão na tela. Não decore: eles mudam a cada coleta.
+
+Se perguntarem por que só trezentos pedidos para tanto dado:
+
+> Porque um pedido pode trazer um arquivo enorme. O do censo escolar sozinho passa de 200 MB. E
+> 245 dos pedidos são do Tesouro Nacional, porque a API dele responde um município por vez.
 
 ## Se o professor perguntar
 
@@ -177,8 +185,8 @@ Esta resposta vale ouro, e é verdade.
 | Eixos | 6 |
 | Fontes públicas | 7 |
 | Testes automáticos | 348 |
-| Linhas de dado guardadas | 53.227 |
-| Requisições feitas, nenhuma recusada | 292 |
+| Registros guardados | mais de 53 mil, leia o número exato na tela |
+| Requisições a servidores do governo | quase 300, nenhuma recusada |
 | Sem leito da rede estadual | 222 de 246 |
 | Sem unidade de saúde noturna | 155 de 246 |
 | Pessoas nesses municípios | 2.016.452 |
